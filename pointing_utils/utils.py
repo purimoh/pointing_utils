@@ -6,7 +6,7 @@ from emgregs import emg_reg_heterosked
 
 
 class FittsModel:
-    def __init__(self, dataframe, aggregate=["Participant", "A", "W"], throughputs=all):
+    def __init__(self, dataframe, aggregate=["Participant", "A", "W"], throughputs='all'):
         """
         Expects a dataframe with at least
         columns=["Participant", "X0", "Y0", "Xf", "Yf", "Xt", "Yt", "MT"]

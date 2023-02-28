@@ -1,5 +1,5 @@
 
-Welcome to PVPlib's documentation!
+Welcome to Pointing-utils documentation!
 ==============================================
 
 Project description
@@ -7,14 +7,14 @@ Project description
 
 This library provides utilities to deal with pointing data
 
-Installing PVPlib
+Installing Pointing utils
 =======================
 
-The library can be installed directly with pip[not possible yet]:
+The library can be installed directly with pip:
 
 .. code-block:: bash
     
-    python3 -m pip install 
+    python3 -m pip pointing-utils 
 
 
 Alternatively, you can also downlaod the source and build it using `poetry <https://python-poetry.org/>`_
@@ -44,8 +44,8 @@ only one class available for now
 See also
 ============
 
-[PVPlib](https://jgori-ouistiti.github.io/PVPlib/)
-[EMG regressions](https://github.com/jgori-ouistiti/python-emgregs)
+* (PVPlib)[https://jgori-ouistiti.github.io/PVPlib/]
+* (EMG regressions)[https://github.com/jgori-ouistiti/python-emgregs]
 
 Indices
 ===========
