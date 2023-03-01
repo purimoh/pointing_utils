@@ -15,7 +15,7 @@ def segment(data_dict, reciprocal=False, **kwargs):
         return positive, negative
 
 
-def package(*args, reciprocal=False):
+def package(*args, reciprocal=False, json_serializable=False):
     if not reciprocal:
         segments = args[0]
         container = {}
@@ -23,9 +23,15 @@ def package(*args, reciprocal=False):
             zip(segments.start_of_movements[:, 2], segments.final[:, 2])
         ):
             start, stop = int(start), int(stop)
+            if json_serializable:
+                t = segments.data_array[0, start:stop].tolist()
+                x = segments.data_array[1, start:stop].tolist()
+            else:
+                t = segments.data_array[0, start:stop]
+                x = segments.data_array[1, start:stop]
             container["mov" + str(n)] = {
-                "t": segments.data_array[0, start:stop],
-                "x": segments.data_array[1, start:stop],
+                "t": t,
+                "x": x,
             }
     else:
         pos_segments, neg_segments = args
@@ -34,18 +40,32 @@ def package(*args, reciprocal=False):
             zip(pos_segments.start_of_movements[:, 2], pos_segments.final[:, 2])
         ):
             start, stop = int(start), int(stop)
+            if json_serializable:
+                t = pos_segments.data_array[0, start:stop].tolist()
+                x = pos_segments.data_array[1, start:stop].tolist()
+            else:
+                t = pos_segments.data_array[0, start:stop]
+                x = pos_segments.data_array[1, start:stop]
+
             container["mov" + str(n)] = {
-                "t": pos_segments.data_array[0, start:stop],
-                "x": pos_segments.data_array[1, start:stop],
+                "t": t,
+                "x": x,
             }
         k = n
         for n, (start, stop) in enumerate(
             zip(neg_segments.start_of_movements[:, 2], neg_segments.final[:, 2])
         ):
             start, stop = int(start), int(stop)
+            if json_serializable:
+                t = neg_segments.data_array[0, start:stop].tolist()
+                x = neg_segments.data_array[1, start:stop].tolist()
+            else:
+                t = neg_segments.data_array[0, start:stop]
+                x = neg_segments.data_array[1, start:stop]
+
             container["-mov" + str(n + k + 1)] = {
-                "t": neg_segments.data_array[0, start:stop],
-                "x": neg_segments.data_array[1, start:stop],
+                "t": t,
+                "x": x,
             }
 
     return container
@@ -68,13 +88,7 @@ class Segmenter:
 
 
         :param data_dict: _description_
-        :type data_dict: _type_
-        :param filter: _description_, defaults to None
-        :type filter: _type_, optional
-        :param resampling_period: _description_, defaults to 0.01
-        :type resampling_period: float, optional
-        :param compute_derivs: _description_, defaults to 2
-        :type compute_derivs: int, optional
+        :type data_dict: _type_json
         :param start_params: _description_, defaults to {"thresh": 1e-2}
         :type start_params: dict, optional
         :param trim: _description_, defaults to [0, 0]
