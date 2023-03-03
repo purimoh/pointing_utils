@@ -4,73 +4,6 @@ import scipy.signal
 import scipy.interpolate
 
 
-def segment(data_dict, reciprocal=False, **kwargs):
-    if not reciprocal:
-        return Segmenter(data_dict, **kwargs)
-    else:
-        positive = Segmenter(data_dict, **kwargs)
-        data_dict["x"] = -numpy.array(data_dict["x"])
-        negative = Segmenter(data_dict, **kwargs)
-        negative = negative.negative()
-        return positive, negative
-
-
-def package(*args, reciprocal=False, json_serializable=False):
-    if not reciprocal:
-        segments = args[0]
-        container = {}
-        for n, (start, stop) in enumerate(
-            zip(segments.start_of_movements[:, 2], segments.final[:, 2])
-        ):
-            start, stop = int(start), int(stop)
-            if json_serializable:
-                t = segments.data_array[0, start:stop].tolist()
-                x = segments.data_array[1, start:stop].tolist()
-            else:
-                t = segments.data_array[0, start:stop]
-                x = segments.data_array[1, start:stop]
-            container["mov" + str(n)] = {
-                "t": t,
-                "x": x,
-            }
-    else:
-        pos_segments, neg_segments = args
-        container = {}
-        for n, (start, stop) in enumerate(
-            zip(pos_segments.start_of_movements[:, 2], pos_segments.final[:, 2])
-        ):
-            start, stop = int(start), int(stop)
-            if json_serializable:
-                t = pos_segments.data_array[0, start:stop].tolist()
-                x = pos_segments.data_array[1, start:stop].tolist()
-            else:
-                t = pos_segments.data_array[0, start:stop]
-                x = pos_segments.data_array[1, start:stop]
-
-            container["mov" + str(n)] = {
-                "t": t,
-                "x": x,
-            }
-        k = n
-        for n, (start, stop) in enumerate(
-            zip(neg_segments.start_of_movements[:, 2], neg_segments.final[:, 2])
-        ):
-            start, stop = int(start), int(stop)
-            if json_serializable:
-                t = neg_segments.data_array[0, start:stop].tolist()
-                x = neg_segments.data_array[1, start:stop].tolist()
-            else:
-                t = neg_segments.data_array[0, start:stop]
-                x = neg_segments.data_array[1, start:stop]
-
-            container["-mov" + str(n + k + 1)] = {
-                "t": t,
-                "x": x,
-            }
-
-    return container
-
-
 class Segmenter:
     def __init__(
         self,
@@ -78,8 +11,8 @@ class Segmenter:
         filter=None,
         resampling_period=0.01,
         compute_derivs=True,
-        start_params={"thresh": 5e-2},
-        stop_params={"thresh": 2e-2},
+        start_params={"thresh": 1e-2},
+        stop_params={"thresh": 1e-2},
         trim=[0, 0],
     ):
         """__init__ _summary_
@@ -184,7 +117,7 @@ class Segmenter:
     @staticmethod
     def _interp_filt(data_dict, resampling_period, filter, compute_derivs):
         x, y = data_dict["t"], data_dict["x"]
-
+        x = numpy.array(x) - x[0]
         interp = scipy.interpolate.interp1d(x, y, fill_value="extrapolate")
         data_array = numpy.zeros((4, len(range(int(x[-1] / resampling_period + 1)))))
         data_array[0, :] = numpy.array(
@@ -223,6 +156,7 @@ class Segmenter:
 
     @staticmethod
     def _find_movs(_time, x, trim=[0, 0]):
+        _movs = []
         _mean = 1 / 2 * (numpy.max(x) + numpy.min(x))
         _x, _y = [], []
         status = False
@@ -231,6 +165,7 @@ class Segmenter:
                 # Start of movement
                 _x.append(_time[k])
                 _y.append(x[k])
+
                 status = True
             elif _test == True and status == True:
                 # During Movement
@@ -243,34 +178,123 @@ class Segmenter:
                 status = False
 
         _x = _x[trim[0] :]
-        _x = _x[: trim[1]]
         _y = _y[trim[0] :]
-        _y = _y[: trim[1]]
+        if trim[1] > 0:
+            _x = _x[: -trim[1]]
+            _y = _y[: -trim[1]]
+        elif trim[1] < 0:
+            _x = _x[: trim[1]]
+            _y = _y[: trim[1]]
+
         return numpy.array([_x, _y])
+
+    @staticmethod
+    def _find_start_elem(_time, x, v, pt, previous_pt, thresh):
+        indx = numpy.where(_time == pt)
+        indx = int(indx[0])
+        mean = 1 / 2 * (numpy.max(x) + numpy.min(x))
+        while abs(v[indx]) >= thresh:
+            indx += -1
+
+        if previous_pt > _time[indx]:
+            return Segmenter._find_start_elem(
+                _time, x, v, pt, previous_pt, thresh * 1.1
+            )
+        elif x[indx] > mean:
+            return Segmenter._find_start_elem(
+                _time, x, v, pt, previous_pt, thresh * 1.1
+            )
+        else:
+            return [_time[indx], x[indx], indx]
 
     @staticmethod
     def _find_start(_time, x, v, midpoints, thresh=1e-2):
         ### Start points
         startpt = []
         for k, pt in enumerate(midpoints[0]):
-            indx = numpy.where(_time == pt)
-            indx = int(indx[0])
-            while abs(v[indx]) >= thresh:
-                indx += -1
+            if k == 0:
+                pt_previous = 0
+            else:
+                pt_previous = midpoints[0][k - 1]
             try:
-                startpt.append([_time[indx], x[indx], indx])
-            except IndexError:
-                print(indx)
-                startpt.append([_time[indx], x[indx], indx])
+                startpt.append(
+                    Segmenter._find_start_elem(_time, x, v, pt, pt_previous, thresh)
+                )
+            except RecursionError:
+                startpt.append([None, None, None])
+
         return numpy.array(startpt)
+
+    @staticmethod
+    def _find_stop_elem(_time, x, v, pt, pt_after, thresh):
+        # Score is based on the longest dwell period
+        threshold = lambda signal: [x if abs(x) > thresh else 0 for x in signal]
+        vthresh = threshold(v)
+        mean = 1 / 2 * (numpy.max(x) + numpy.min(x))
+        indx = numpy.where(_time == pt)
+        indx = int(indx[0])
+        # First zero crossing
+        while vthresh[indx] != 0 and indx < (len(_time) - 1):
+            indx += 1
+        if indx == len(_time):
+            return
+        tmp_start = indx
+        a = indx
+        out = indx
+        b = indx
+
+        if _time[indx] > pt_after:
+            return Segmenter._find_stop_elem(_time, x, v, pt, pt_after, thresh * 1.1)
+
+        if x[indx] < mean:
+            return Segmenter._find_stop_elem(_time, x, v, pt, pt_after, thresh * 1.1)
+
+        first_zero = [_time[indx], x[indx], indx]
+        if indx < (len(_time)):
+            while x[indx] > mean and indx < (len(_time) - 1):
+                indx += 1
+        else:
+            pass
+        tmp_stop = indx
+        plateau = vthresh[tmp_start:tmp_stop]
+        Dwell = False
+        plateaux = []
+        for nu, u in enumerate(plateau[:-1]):
+            if (
+                u == 0
+                and plateau[nu + 1] == 0
+                and plateau[nu - 1] == 0
+                and Dwell == False
+            ):
+                a = nu + tmp_start
+                Dwell = True
+                indx = a
+            elif u != 0 and Dwell == True:
+                b = nu + tmp_start
+                Dwell = False
+                plateaux.append([a, b])
+            else:
+                pass
+        b = tmp_stop
+        last_dwelling = [_time[a], x[a], indx]
+        while abs(v[b]) > thresh and b > a + 1:
+            b = b - 1
+        final = [_time[b], x[b], b]
+        _mid = int((b + a) / 2)
+        mid = [_time[_mid], x[_mid], _mid]
+        tmp = 0
+        for a, b in plateaux:
+            _dist = b - a
+            if _dist > tmp:
+                tmp = _dist
+                out = a
+        score_based = [_time[out], x[out], out]
+        return first_zero, last_dwelling, final, mid, score_based
 
     @staticmethod
     def _find_stop(_time, x, v, midpoints, thresh=1e-2):
         ### Stop points
-        # Score is based on the longest dwell period
-        mean = 1 / 2 * (numpy.max(x) + numpy.min(x))
-        threshold = lambda signal: [x if abs(x) > thresh else 0 for x in signal]
-        vthresh = threshold(v)
+
         first_zero = []
         last_dwelling = []
         score_based = []
@@ -278,57 +302,23 @@ class Segmenter:
         mid = []  # # get rough midpoints for each movement
 
         for k, pt in enumerate(midpoints[0]):
-            indx = numpy.where(_time == pt)
-            indx = int(indx[0])
-            # First zero crossing
-            while vthresh[indx] != 0 and indx < (len(_time) - 1):
-                indx += 1
-            if indx == len(_time):
-                break
-            tmp_start = indx
-            a = indx
-            out = indx
-            b = indx
-            first_zero.append([_time[indx], x[indx], indx])
-            if indx < (len(_time)):
-                while x[indx] > mean and indx < (len(_time) - 1):
-                    indx += 1
-            else:
-                pass
-            tmp_stop = indx
-            plateau = vthresh[tmp_start:tmp_stop]
-            Dwell = False
-            plateaux = []
-            for nu, u in enumerate(plateau[:-1]):
-                if (
-                    u == 0
-                    and plateau[nu + 1] == 0
-                    and plateau[nu - 1] == 0
-                    and Dwell == False
-                ):
-                    a = nu + tmp_start
-                    Dwell = True
-                    indx = a
-                elif u != 0 and Dwell == True:
-                    b = nu + tmp_start
-                    Dwell = False
-                    plateaux.append([a, b])
-                else:
-                    pass
-            b = tmp_stop
-            last_dwelling.append([_time[a], x[a], indx])
-            while abs(v[b]) > thresh and b > a + 1:
-                b = b - 1
-            final.append([_time[b], x[b], b])
-            _mid = int((b + a) / 2)
-            mid.append([_time[_mid], x[_mid], _mid])
-            tmp = 0
-            for a, b in plateaux:
-                _dist = b - a
-                if _dist > tmp:
-                    tmp = _dist
-                    out = a
-            score_based.append([_time[out], x[out], out])
+            try:
+                pt_after = midpoints[0][k + 1]
+            except IndexError:
+                pt_after = _time[-1]
+            (
+                _first_zero,
+                _last_dwelling,
+                _final,
+                _mid,
+                _score_based,
+            ) = Segmenter._find_stop_elem(_time, x, v, pt, pt_after, thresh)
+
+            first_zero.append(_first_zero)
+            last_dwelling.append(_last_dwelling)
+            mid.append(_mid)
+            final.append(_final)
+            score_based.append(_score_based)
 
         return (
             numpy.array(first_zero),
@@ -337,6 +327,14 @@ class Segmenter:
             numpy.array(final),
             numpy.array(mid),
         )
+
+    def check_segmentation(self):
+        fig, ax, _ = self.plot_signals()
+        ax.plot(*self._midpoints_movements, "b*")
+
+        ax.plot(self.start_of_movements[:, 0], self.start_of_movements[:, 1], "g*")
+        ax.plot(self.score_based[:, 0], self.score_based[:, 1], "r*")
+        plt.show()
 
     def negative(self):
         self._midpoints_movements[:, 1] = -self._midpoints_movements[:, 1]
@@ -347,3 +345,78 @@ class Segmenter:
         self.score_based[:, 1] = -self.score_based[:, 1]
         self.mid[:, 1] = -self.mid[:, 1]
         return self
+
+
+def update_thresholds(start_params, stop_params, reason):
+    return {"thresh": start_params["thresh"] * reason}, {
+        "thresh": stop_params["thresh"] * reason
+    }
+
+
+def segment(data_dict, segmenter=Segmenter, reciprocal=False, **kwargs):
+    if not reciprocal:
+        return segmenter(data_dict, **kwargs)
+    else:
+        positive = segmenter(data_dict, **kwargs)
+        data_dict["x"] = -numpy.array(data_dict["x"])
+        negative = segmenter(data_dict, **kwargs)
+        negative = negative.negative()
+        return positive, negative
+
+
+def package(*args, reciprocal=False, json_serializable=False):
+    if not reciprocal:
+        segments = args[0]
+        container = {}
+        for n, (start, stop) in enumerate(
+            zip(segments.start_of_movements[:, 2], segments.final[:, 2])
+        ):
+            if start is None or stop is None:
+                continue
+            start, stop = int(start), int(stop)
+            if json_serializable:
+                t = segments.data_array[0, start:stop].tolist()
+                x = segments.data_array[1, start:stop].tolist()
+            else:
+                t = segments.data_array[0, start:stop]
+                x = segments.data_array[1, start:stop]
+            container["mov" + str(n)] = {
+                "t": t,
+                "x": x,
+            }
+    else:
+        pos_segments, neg_segments = args
+        container = {}
+        for n, (start, stop) in enumerate(
+            zip(pos_segments.start_of_movements[:, 2], pos_segments.final[:, 2])
+        ):
+            start, stop = int(start), int(stop)
+            if json_serializable:
+                t = pos_segments.data_array[0, start:stop].tolist()
+                x = pos_segments.data_array[1, start:stop].tolist()
+            else:
+                t = pos_segments.data_array[0, start:stop]
+                x = pos_segments.data_array[1, start:stop]
+
+            container["mov" + str(n)] = {
+                "t": t,
+                "x": x,
+            }
+        k = n
+        for n, (start, stop) in enumerate(
+            zip(neg_segments.start_of_movements[:, 2], neg_segments.final[:, 2])
+        ):
+            start, stop = int(start), int(stop)
+            if json_serializable:
+                t = neg_segments.data_array[0, start:stop].tolist()
+                x = neg_segments.data_array[1, start:stop].tolist()
+            else:
+                t = neg_segments.data_array[0, start:stop]
+                x = neg_segments.data_array[1, start:stop]
+
+            container["-mov" + str(n + k + 1)] = {
+                "t": t,
+                "x": x,
+            }
+
+    return container
