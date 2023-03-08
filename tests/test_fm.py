@@ -4,23 +4,32 @@ import pathlib
 original_dataset_directory = pathlib.Path(__file__).resolve().parents[0]
 
 
-def test_without_bootstrap():
+def test_without_CI():
     fm = FittsModel((original_dataset_directory / "fitts.csv").resolve())
     return fm
 
 
-def test_with_bootstrap():
+def test_with_CI_bootstrap():
     fm = FittsModel(
         (original_dataset_directory / "fitts.csv").resolve(),
-        bootstrap=True,
+        CI="bootstrap",
         bootstrap_kwargs={"batch": 100, "n_resamples": 9999},
     )
     return fm
 
 
+def test_with_CI_delta():
+    fm = FittsModel(
+        (original_dataset_directory / "fitts.csv").resolve(),
+        CI="delta",
+    )
+    return fm
+
+
 if __name__ == "__main__":
-    fm_wo_b = test_without_bootstrap()
-    fm_w_b = test_with_bootstrap()
+    fm_wo_ci = test_without_CI()
+    fm_w_d = test_with_CI_delta()
+    fm_w_b = test_with_CI_bootstrap()
     import matplotlib.pyplot as plt
 
     fig, axs = plt.subplots(nrows=2, ncols=3)

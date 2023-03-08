@@ -381,7 +381,7 @@ class FittsModel:
             self._bootstrap_utility(
                 "Mean-of-Means",
                 "agg_df",
-                "ID_n",
+                "IDn",
                 FittsModel._mm_tp(self.agg_df["IDn"], self.agg_df["MT"]),
                 FittsModel._mm_tp,
                 bootstrap_kwargs,
