@@ -938,6 +938,17 @@ develop = ["cython (>=0.29.32)", "cython (>=0.29.32,<3.0.0)", "setuptools-scm[to
 docs = ["sphinx", "nbconvert", "jupyter-client", "ipykernel", "matplotlib", "nbformat", "numpydoc", "pandas-datareader"]
 
 [[package]]
+name = "tabulate"
+version = "0.9.0"
+description = "Pretty-print tabular data"
+category = "main"
+optional = false
+python-versions = ">=3.7"
+
+[package.extras]
+widechars = ["wcwidth"]
+
+[[package]]
 name = "threadpoolctl"
 version = "3.1.0"
 description = "threadpoolctl"
@@ -1033,7 +1044,7 @@ testing = ["pytest (>=6)", "pytest-checkdocs (>=2.4)", "flake8 (<5)", "pytest-co
 [metadata]
 lock-version = "1.1"
 python-versions = ">=3.8,<3.11"
-content-hash = "ca1f6e7c9fc8f108778537305641c0108e5d0a825a8eb9aa7a94f0dd7c0b5764"
+content-hash = "be0614a50e23798404db4eddd4e142cdbc480c94c3033c6443708902c5a221d7"
 
 [metadata.files]
 alabaster = []
@@ -1108,6 +1119,7 @@ sphinxcontrib-jsmath = []
 sphinxcontrib-qthelp = []
 sphinxcontrib-serializinghtml = []
 statsmodels = []
+tabulate = []
 threadpoolctl = []
 tomli = []
 tqdm = []
