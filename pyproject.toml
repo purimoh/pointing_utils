@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "pointing_utils"
-version = "0.0.1"
+version = "0.0.2-dev0"
 description = "Utilities for dealing with pointing data"
 authors = ["jgori <juliengori@gmail.com>"]
 
@@ -12,6 +12,7 @@ pandas = "^1.5.3"
 matplotlib = "^3.7.0"
 emgregs = "^0.0.4"
 tabulate = "^0.9.0"
+control = "^0.9.3"
 
 
 [tool.poetry.dev-dependencies]

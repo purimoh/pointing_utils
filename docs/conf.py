@@ -24,7 +24,7 @@ copyright = "2023, Julien Gori"
 author = "Julien Gori"
 
 # The full version, including alpha/beta/rc tags
-release = "0.0.1"
+release = "0.0.2-dev0"
 
 
 # -- General configuration ---------------------------------------------------
