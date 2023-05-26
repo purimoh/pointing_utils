@@ -2,21 +2,23 @@
 from setuptools import setup
 
 packages = \
-['pointing_utils']
+['pointing_utils', 'pointing_utils.optimal_control']
 
 package_data = \
 {'': ['*']}
 
 install_requires = \
-['emgregs>=0.0.4,<0.0.5',
+['control>=0.9.3,<0.10.0',
+ 'emgregs>=0.0.4,<0.0.5',
  'matplotlib>=3.7.0,<4.0.0',
  'numpy>=1.24.2,<2.0.0',
  'pandas>=1.5.3,<2.0.0',
- 'statsmodels>=0.13.5,<0.14.0']
+ 'statsmodels>=0.13.5,<0.14.0',
+ 'tabulate>=0.9.0,<0.10.0']
 
 setup_kwargs = {
     'name': 'pointing-utils',
-    'version': '0.0.1',
+    'version': '0.0.2.dev0',
     'description': 'Utilities for dealing with pointing data',
     'long_description': None,
     'author': 'jgori',

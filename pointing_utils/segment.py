@@ -74,7 +74,6 @@ class Segmenter:
 
     # https://matplotlib.org/stable/gallery/spines/multiple_yaxis_with_spines.html#sphx-glr-gallery-spines-multiple-yaxis-with-spines-py
     def _triplet_x(self, x, y1, y2, y3, fig=None, ax=None, labels=["y1", "y2", "y3"]):
-
         if fig is None and ax is None:
             fig, ax = plt.subplots()
 
@@ -189,7 +188,7 @@ class Segmenter:
         return numpy.array([_x, _y])
 
     @staticmethod
-    def _find_start_elem(_time, x, v, pt, previous_pt, thresh):
+    def _find_start_elem(_time, x, v, pt, previous_pt, thresh, mean_check=False):
         indx = numpy.where(_time == pt)
         indx = int(indx[0])
         mean = 1 / 2 * (numpy.max(x) + numpy.min(x))
@@ -200,7 +199,7 @@ class Segmenter:
             return Segmenter._find_start_elem(
                 _time, x, v, pt, previous_pt, thresh * 1.1
             )
-        elif x[indx] > mean:
+        elif mean_check and x[indx] > mean:
             return Segmenter._find_start_elem(
                 _time, x, v, pt, previous_pt, thresh * 1.1
             )
