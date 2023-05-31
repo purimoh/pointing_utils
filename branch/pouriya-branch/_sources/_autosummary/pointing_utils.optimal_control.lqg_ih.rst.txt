@@ -1,0 +1,40 @@
+pointing\_utils.optimal\_control.lqg\_ih
+========================================
+
+.. automodule:: pointing_utils.optimal_control.lqg_ih
+
+   
+   
+   
+
+   
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+      :toctree:
+      :nosignatures:
+   
+      main
+   
+   
+
+   
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+      :toctree:
+      :template: custom-class-template.rst
+      :nosignatures:
+   
+      LQG_IH
+   
+   
+
+   
+   
+   
+
+
+

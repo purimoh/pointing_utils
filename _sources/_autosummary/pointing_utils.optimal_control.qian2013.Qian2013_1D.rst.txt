@@ -1,0 +1,40 @@
+pointing\_utils.optimal\_control.qian2013.Qian2013\_1D
+======================================================
+
+.. currentmodule:: pointing_utils.optimal_control.qian2013
+
+.. autoclass:: Qian2013_1D
+   :members:
+   :show-inheritance:
+   :inherited-members:
+   :special-members: __call__, __add__, __mul__
+
+   
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+      :nosignatures:
+   
+      ~Qian2013_1D.LinRicatti
+      ~Qian2013_1D.check_KL
+      ~Qian2013_1D.check_stability
+      ~Qian2013_1D.compute_kalman_matrices
+      ~Qian2013_1D.counted_decorator
+      ~Qian2013_1D.find_K_L_recursion
+      ~Qian2013_1D.plot_trajectories
+      ~Qian2013_1D.reset
+      ~Qian2013_1D.simulate
+      ~Qian2013_1D.step
+   
+   
+
+   
+   
+   .. rubric:: Attributes
+
+   .. autosummary::
+   
+      ~Qian2013_1D.C
+   
+   

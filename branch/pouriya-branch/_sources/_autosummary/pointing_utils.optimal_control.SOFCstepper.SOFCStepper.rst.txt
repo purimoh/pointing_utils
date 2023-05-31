@@ -1,0 +1,27 @@
+pointing\_utils.optimal\_control.SOFCstepper.SOFCStepper
+========================================================
+
+.. currentmodule:: pointing_utils.optimal_control.SOFCstepper
+
+.. autoclass:: SOFCStepper
+   :members:
+   :show-inheritance:
+   :inherited-members:
+   :special-members: __call__, __add__, __mul__
+
+   
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+      :nosignatures:
+   
+      ~SOFCStepper.reset
+      ~SOFCStepper.simulate
+      ~SOFCStepper.step
+   
+   
+
+   
+   
+   

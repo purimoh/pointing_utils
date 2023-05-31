@@ -1,0 +1,33 @@
+pointing\_utils.throughput
+==========================
+
+.. automodule:: pointing_utils.throughput
+
+   
+   
+   
+
+   
+   
+   
+
+   
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+      :toctree:
+      :template: custom-class-template.rst
+      :nosignatures:
+   
+      FittsModel
+      FittsModelNoW
+   
+   
+
+   
+   
+   
+
+
+

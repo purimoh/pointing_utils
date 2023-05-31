@@ -1,0 +1,895 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>pointing_utils.throughput &mdash; Pointing_utils 0.0.2-dev0 documentation</title>
+      <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
+        <script src="../../_static/jquery.js"></script>
+        <script src="../../_static/underscore.js"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script src="../../_static/doctools.js"></script>
+        <script src="../../_static/sphinx_highlight.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../../index.html" class="icon icon-home"> Pointing_utils
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">See also</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../index.html">    Home page</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../_autosummary/pointing_utils.html">    API reference</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">Pointing_utils</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">pointing_utils.throughput</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for pointing_utils.throughput</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+<span class="kn">import</span> <span class="nn">pandas</span>
+<span class="kn">import</span> <span class="nn">numpy</span>
+<span class="kn">import</span> <span class="nn">statsmodels.api</span> <span class="k">as</span> <span class="nn">sm</span>
+<span class="kn">from</span> <span class="nn">emgregs</span> <span class="kn">import</span> <span class="n">emg_reg_heterosked</span>
+<span class="kn">from</span> <span class="nn">tabulate</span> <span class="kn">import</span> <span class="n">tabulate</span>
+<span class="kn">import</span> <span class="nn">scipy</span>
+<span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">namedtuple</span>
+
+<span class="n">FITTSMODELCOLUMNNAMES</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;Participant&quot;</span><span class="p">,</span> <span class="s2">&quot;X0&quot;</span><span class="p">,</span> <span class="s2">&quot;Y0&quot;</span><span class="p">,</span> <span class="s2">&quot;Xf&quot;</span><span class="p">,</span> <span class="s2">&quot;Yf&quot;</span><span class="p">,</span> <span class="s2">&quot;Xt&quot;</span><span class="p">,</span> <span class="s2">&quot;Yt&quot;</span><span class="p">,</span> <span class="s2">&quot;MT&quot;</span><span class="p">]</span>
+
+
+<div class="viewcode-block" id="FittsModel"><a class="viewcode-back" href="../../_autosummary/pointing_utils.throughput.FittsModel.html#pointing_utils.throughput.FittsModel">[docs]</a><span class="k">class</span> <span class="nc">FittsModel</span><span class="p">:</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">dataframe</span><span class="p">,</span>
+        <span class="n">aggregate</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;Participant&quot;</span><span class="p">,</span> <span class="s2">&quot;A&quot;</span><span class="p">,</span> <span class="s2">&quot;W&quot;</span><span class="p">],</span>
+        <span class="n">throughputs</span><span class="o">=</span><span class="s2">&quot;all&quot;</span><span class="p">,</span>
+        <span class="n">CI</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">bootstrap_kwargs</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;batch&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span> <span class="s2">&quot;n_resamples&quot;</span><span class="p">:</span> <span class="mi">9999</span><span class="p">},</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Expects a dataframe with at least</span>
+<span class="sd">        columns=[&quot;Participant&quot;, &quot;X0&quot;, &quot;Y0&quot;, &quot;Xf&quot;, &quot;Yf&quot;, &quot;Xt&quot;, &quot;Yt&quot;, &quot;MT&quot;]</span>
+
+
+<span class="sd">        average = groupby argument for the aggregate metrics</span>
+
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_ci</span> <span class="o">=</span> <span class="n">CI</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">agg_df</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tp_data</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;Slope-Nominal&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="s2">&quot;Slope-Effective&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="s2">&quot;Slope-Epsilon&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="s2">&quot;Mean-of-Means&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="s2">&quot;ISO&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="s2">&quot;Mean-of-Means-epsilon&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="s2">&quot;EMG&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="s2">&quot;EMG-effective&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="s2">&quot;EMG-epsilon&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="s2">&quot;Agg-Slope-Nominal&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="s2">&quot;Agg-Slope-Effective&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="s2">&quot;Agg-Slope-Epsilon&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="s2">&quot;Agg-EMG&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="s2">&quot;Agg-EMG-effective&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="s2">&quot;Agg-EMG-epsilon&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="p">}</span>
+
+        <span class="c1"># Load as dataframe</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">dataframe</span><span class="p">,</span> <span class="n">pandas</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">dataframe</span> <span class="o">=</span> <span class="n">dataframe</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">dataframe</span> <span class="o">=</span> <span class="n">pandas</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="n">dataframe</span><span class="p">)</span>
+
+        <span class="c1"># self._check_dataframe_column_labels(self.dataframe)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">aggregate_labels</span> <span class="o">=</span> <span class="n">aggregate</span>
+        <span class="c1"># Add per-row effective distance, error, nominal ID IDn, error_date epsilon, standard deviation sigma, epsilon ID IDepsilon, effective ID IDe.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_augment</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_aggregate</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="s2">&quot;meanofmeans&quot;</span> <span class="ow">in</span> <span class="n">throughputs</span> <span class="ow">or</span> <span class="n">throughputs</span> <span class="o">==</span> <span class="s2">&quot;all&quot;</span><span class="p">:</span>
+            <span class="c1"># compute mean of means values</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_mean_of_means</span><span class="p">(</span><span class="n">CI</span><span class="o">=</span><span class="n">CI</span><span class="p">,</span> <span class="n">bootstrap_kwargs</span><span class="o">=</span><span class="n">bootstrap_kwargs</span><span class="p">)</span>
+        <span class="k">if</span> <span class="s2">&quot;slope&quot;</span> <span class="ow">in</span> <span class="n">throughputs</span> <span class="ow">or</span> <span class="n">throughputs</span> <span class="o">==</span> <span class="s2">&quot;all&quot;</span><span class="p">:</span>
+            <span class="c1"># Compute Linear regression</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_slope_throughputs</span><span class="p">(</span><span class="n">CI</span><span class="o">=</span><span class="n">CI</span><span class="p">,</span> <span class="n">bootstrap_kwargs</span><span class="o">=</span><span class="n">bootstrap_kwargs</span><span class="p">)</span>
+        <span class="k">if</span> <span class="s2">&quot;emg&quot;</span> <span class="ow">in</span> <span class="n">throughputs</span> <span class="ow">or</span> <span class="n">throughputs</span> <span class="o">==</span> <span class="s2">&quot;all&quot;</span><span class="p">:</span>
+            <span class="c1"># Compute EMG regression</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_emg_regression</span><span class="p">(</span><span class="n">CI</span><span class="o">=</span><span class="n">CI</span><span class="p">)</span>
+
+    <span class="c1"># def _check_dataframe_column_labels(self, dataframe):</span>
+
+    <span class="c1">#     for key in dataframe.keys():</span>
+    <span class="c1">#         if key not in self.__class__COLUMNNAMES:</span>
+    <span class="c1">#             raise ValueError(</span>
+    <span class="c1">#                 f&#39;The provided dataframe should have columns named in [&quot;Participant&quot;, &quot;X0&quot;, &quot;Y0&quot;, &quot;Xf&quot;, &quot;Yf&quot;, &quot;Xt&quot;, &quot;Yt&quot;, &quot;MT&quot;], but you provided {key}.&#39;</span>
+    <span class="c1">#             )</span>
+
+    <span class="k">def</span> <span class="nf">_aggregate</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">agg_df</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">dataframe</span><span class="o">.</span><span class="n">drop</span><span class="p">([</span><span class="s2">&quot;X0&quot;</span><span class="p">,</span> <span class="s2">&quot;Y0&quot;</span><span class="p">,</span> <span class="s2">&quot;Xf&quot;</span><span class="p">,</span> <span class="s2">&quot;Yf&quot;</span><span class="p">,</span> <span class="s2">&quot;Xt&quot;</span><span class="p">,</span> <span class="s2">&quot;Yt&quot;</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+                <span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">aggregate_labels</span><span class="p">)</span>
+                <span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+            <span class="p">)</span>
+        <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">agg_df</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">dataframe</span><span class="o">.</span><span class="n">drop</span><span class="p">([</span><span class="s2">&quot;X0&quot;</span><span class="p">,</span> <span class="s2">&quot;Xf&quot;</span><span class="p">,</span> <span class="s2">&quot;Xt&quot;</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+                <span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">aggregate_labels</span><span class="p">)</span>
+                <span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+            <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_emg_reg_nominal</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">CI</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="n">a</span><span class="p">,</span> <span class="n">b</span> <span class="o">=</span> <span class="n">emg_reg_heterosked</span><span class="p">(</span>
+            <span class="n">numpy</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dataframe</span><span class="p">[</span><span class="s2">&quot;IDn&quot;</span><span class="p">]),</span> <span class="n">numpy</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dataframe</span><span class="p">[</span><span class="s2">&quot;MT&quot;</span><span class="p">])</span>
+        <span class="p">)[</span><span class="s2">&quot;beta&quot;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_a_emg</span> <span class="o">=</span> <span class="n">a</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_b_emg</span> <span class="o">=</span> <span class="n">b</span>
+        <span class="k">if</span> <span class="n">CI</span> <span class="o">==</span> <span class="s2">&quot;delta&quot;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">tp_data</span><span class="p">[</span><span class="s2">&quot;EMG&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;value&quot;</span><span class="p">:</span> <span class="mi">1</span> <span class="o">/</span> <span class="n">b</span><span class="p">,</span> <span class="s2">&quot;CI&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">}</span>
+        <span class="k">elif</span> <span class="n">CI</span> <span class="o">==</span> <span class="s2">&quot;bootstrap&quot;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">tp_data</span><span class="p">[</span><span class="s2">&quot;EMG&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;value&quot;</span><span class="p">:</span> <span class="mi">1</span> <span class="o">/</span> <span class="n">b</span><span class="p">,</span> <span class="s2">&quot;CI&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">}</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">tp_data</span><span class="p">[</span><span class="s2">&quot;EMG&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">/</span> <span class="n">b</span>
+
+    <span class="k">def</span> <span class="nf">_emg_reg_nominal_agg</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">CI</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="n">a</span><span class="p">,</span> <span class="n">b</span> <span class="o">=</span> <span class="n">emg_reg_heterosked</span><span class="p">(</span>
+            <span class="n">numpy</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">agg_df</span><span class="p">[</span><span class="s2">&quot;IDn&quot;</span><span class="p">]),</span> <span class="n">numpy</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">agg_df</span><span class="p">[</span><span class="s2">&quot;MT&quot;</span><span class="p">])</span>
+        <span class="p">)[</span><span class="s2">&quot;beta&quot;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_a_emg_agg</span> <span class="o">=</span> <span class="n">a</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_b_emg_agg</span> <span class="o">=</span> <span class="n">b</span>
+        <span class="k">if</span> <span class="n">CI</span> <span class="o">==</span> <span class="s2">&quot;delta&quot;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">tp_data</span><span class="p">[</span><span class="s2">&quot;Agg-EMG&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;value&quot;</span><span class="p">:</span> <span class="mi">1</span> <span class="o">/</span> <span class="n">b</span><span class="p">,</span> <span class="s2">&quot;CI&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">}</span>
+        <span class="k">elif</span> <span class="n">CI</span> <span class="o">==</span> <span class="s2">&quot;bootstrap&quot;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">tp_data</span><span class="p">[</span><span class="s2">&quot;Agg-EMG&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;value&quot;</span><span class="p">:</span> <span class="mi">1</span> <span class="o">/</span> <span class="n">b</span><span class="p">,</span> <span class="s2">&quot;CI&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">}</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">tp_data</span><span class="p">[</span><span class="s2">&quot;Agg-EMG&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">/</span> <span class="n">b</span>
+
+    <span class="k">def</span> <span class="nf">_emg_reg_effective</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">CI</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="n">a</span><span class="p">,</span> <span class="n">b</span> <span class="o">=</span> <span class="n">emg_reg_heterosked</span><span class="p">(</span>
+            <span class="n">numpy</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dataframe</span><span class="p">[</span><span class="s2">&quot;IDe&quot;</span><span class="p">]),</span> <span class="n">numpy</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dataframe</span><span class="p">[</span><span class="s2">&quot;MT&quot;</span><span class="p">])</span>
+        <span class="p">)[</span><span class="s2">&quot;beta&quot;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_a_emg_e</span> <span class="o">=</span> <span class="n">a</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_b_emg_e</span> <span class="o">=</span> <span class="n">b</span>
+        <span class="k">if</span> <span class="n">CI</span> <span class="o">==</span> <span class="s2">&quot;delta&quot;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">tp_data</span><span class="p">[</span><span class="s2">&quot;EMG-effective&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;value&quot;</span><span class="p">:</span> <span class="mi">1</span> <span class="o">/</span> <span class="n">b</span><span class="p">,</span> <span class="s2">&quot;CI&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">}</span>
+        <span class="k">elif</span> <span class="n">CI</span> <span class="o">==</span> <span class="s2">&quot;bootstrap&quot;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">tp_data</span><span class="p">[</span><span class="s2">&quot;EMG-effective&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;value&quot;</span><span class="p">:</span> <span class="mi">1</span> <span class="o">/</span> <span class="n">b</span><span class="p">,</span> <span class="s2">&quot;CI&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">}</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">tp_data</span><span class="p">[</span><span class="s2">&quot;EMG-effective&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">/</span> <span class="n">b</span>
+
+    <span class="k">def</span> <span class="nf">_emg_reg_effective_agg</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">CI</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="n">a</span><span class="p">,</span> <span class="n">b</span> <span class="o">=</span> <span class="n">emg_reg_heterosked</span><span class="p">(</span>
+            <span class="n">numpy</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">agg_df</span><span class="p">[</span><span class="s2">&quot;IDe&quot;</span><span class="p">]),</span> <span class="n">numpy</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">agg_df</span><span class="p">[</span><span class="s2">&quot;MT&quot;</span><span class="p">])</span>
+        <span class="p">)[</span><span class="s2">&quot;beta&quot;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_a_emg_e_agg</span> <span class="o">=</span> <span class="n">a</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_b_emg_e_agg</span> <span class="o">=</span> <span class="n">b</span>
+        <span class="k">if</span> <span class="n">CI</span> <span class="o">==</span> <span class="s2">&quot;delta&quot;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">tp_data</span><span class="p">[</span><span class="s2">&quot;Agg-EMG-effective&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;value&quot;</span><span class="p">:</span> <span class="mi">1</span> <span class="o">/</span> <span class="n">b</span><span class="p">,</span> <span class="s2">&quot;CI&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">}</span>
+        <span class="k">elif</span> <span class="n">CI</span> <span class="o">==</span> <span class="s2">&quot;bootstrap&quot;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">tp_data</span><span class="p">[</span><span class="s2">&quot;EMG-effective&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;value&quot;</span><span class="p">:</span> <span class="mi">1</span> <span class="o">/</span> <span class="n">b</span><span class="p">,</span> <span class="s2">&quot;CI&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">}</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">tp_data</span><span class="p">[</span><span class="s2">&quot;Agg-EMG-effective&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">/</span> <span class="n">b</span>
+
+    <span class="k">def</span> <span class="nf">_emg_reg_epsilon</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">CI</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="n">a</span><span class="p">,</span> <span class="n">b</span> <span class="o">=</span> <span class="n">emg_reg_heterosked</span><span class="p">(</span>
+            <span class="n">numpy</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dataframe</span><span class="p">[</span><span class="s2">&quot;IDepsilon&quot;</span><span class="p">]),</span> <span class="n">numpy</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dataframe</span><span class="p">[</span><span class="s2">&quot;MT&quot;</span><span class="p">])</span>
+        <span class="p">)[</span><span class="s2">&quot;beta&quot;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_a_emg_eps</span> <span class="o">=</span> <span class="n">a</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_b_emg_eps</span> <span class="o">=</span> <span class="n">b</span>
+        <span class="k">if</span> <span class="n">CI</span> <span class="o">==</span> <span class="s2">&quot;delta&quot;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">tp_data</span><span class="p">[</span><span class="s2">&quot;EMG-epsilon&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;value&quot;</span><span class="p">:</span> <span class="mi">1</span> <span class="o">/</span> <span class="n">b</span><span class="p">,</span> <span class="s2">&quot;CI&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">}</span>
+        <span class="k">elif</span> <span class="n">CI</span> <span class="o">==</span> <span class="s2">&quot;bootstrap&quot;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">tp_data</span><span class="p">[</span><span class="s2">&quot;EMG-effective&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;value&quot;</span><span class="p">:</span> <span class="mi">1</span> <span class="o">/</span> <span class="n">b</span><span class="p">,</span> <span class="s2">&quot;CI&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">}</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">tp_data</span><span class="p">[</span><span class="s2">&quot;EMG-epsilon&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">/</span> <span class="n">b</span>
+
+    <span class="k">def</span> <span class="nf">_emg_reg_epsilon_agg</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">CI</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="n">a</span><span class="p">,</span> <span class="n">b</span> <span class="o">=</span> <span class="n">emg_reg_heterosked</span><span class="p">(</span>
+            <span class="n">numpy</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">agg_df</span><span class="p">[</span><span class="s2">&quot;IDepsilon&quot;</span><span class="p">]),</span> <span class="n">numpy</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">agg_df</span><span class="p">[</span><span class="s2">&quot;MT&quot;</span><span class="p">])</span>
+        <span class="p">)[</span><span class="s2">&quot;beta&quot;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_a_emg_eps_agg</span> <span class="o">=</span> <span class="n">a</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_b_emg_eps_agg</span> <span class="o">=</span> <span class="n">b</span>
+        <span class="k">if</span> <span class="n">CI</span> <span class="o">==</span> <span class="s2">&quot;delta&quot;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">tp_data</span><span class="p">[</span><span class="s2">&quot;Agg-EMG-epsilon&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;value&quot;</span><span class="p">:</span> <span class="mi">1</span> <span class="o">/</span> <span class="n">b</span><span class="p">,</span> <span class="s2">&quot;CI&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">}</span>
+        <span class="k">elif</span> <span class="n">CI</span> <span class="o">==</span> <span class="s2">&quot;bootstrap&quot;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">tp_data</span><span class="p">[</span><span class="s2">&quot;EMG-effective&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;value&quot;</span><span class="p">:</span> <span class="mi">1</span> <span class="o">/</span> <span class="n">b</span><span class="p">,</span> <span class="s2">&quot;CI&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">}</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">tp_data</span><span class="p">[</span><span class="s2">&quot;Agg-EMG-epsilon&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">/</span> <span class="n">b</span>
+
+    <span class="k">def</span> <span class="nf">_emg_regression</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">CI</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_emg_reg_nominal</span><span class="p">(</span><span class="n">CI</span><span class="o">=</span><span class="n">CI</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_emg_reg_nominal_agg</span><span class="p">(</span><span class="n">CI</span><span class="o">=</span><span class="n">CI</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_emg_reg_effective</span><span class="p">(</span><span class="n">CI</span><span class="o">=</span><span class="n">CI</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_emg_reg_effective_agg</span><span class="p">(</span><span class="n">CI</span><span class="o">=</span><span class="n">CI</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_emg_reg_epsilon</span><span class="p">(</span><span class="n">CI</span><span class="o">=</span><span class="n">CI</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_emg_reg_epsilon_agg</span><span class="p">(</span><span class="n">CI</span><span class="o">=</span><span class="n">CI</span><span class="p">)</span>
+
+    <span class="n">confint</span> <span class="o">=</span> <span class="n">namedtuple</span><span class="p">(</span><span class="s2">&quot;ConfidenceInterval&quot;</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;low&quot;</span><span class="p">,</span> <span class="s2">&quot;high&quot;</span><span class="p">,</span> <span class="s2">&quot;standard_error&quot;</span><span class="p">])</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_get_ci_delta_method</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="n">standard_error</span><span class="p">):</span>
+        <span class="n">standard_error</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">/</span> <span class="n">b</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">standard_error</span>
+        <span class="k">return</span> <span class="n">FittsModel</span><span class="o">.</span><span class="n">confint</span><span class="p">(</span>
+            <span class="mi">1</span> <span class="o">/</span> <span class="n">b</span> <span class="o">-</span> <span class="mf">1.96</span> <span class="o">*</span> <span class="n">standard_error</span><span class="p">,</span> <span class="mi">1</span> <span class="o">/</span> <span class="n">b</span> <span class="o">+</span> <span class="mf">1.96</span> <span class="o">*</span> <span class="n">standard_error</span><span class="p">,</span> <span class="n">standard_error</span>
+        <span class="p">)</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_slope_tp</span><span class="p">(</span><span class="nb">id</span><span class="p">,</span> <span class="n">mt</span><span class="p">):</span>
+        <span class="n">covariates</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="nb">id</span><span class="p">),</span> <span class="mi">2</span><span class="p">))</span>
+        <span class="n">covariates</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="nb">id</span>
+        <span class="n">b</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">numpy</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">inv</span><span class="p">((</span><span class="n">numpy</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">covariates</span><span class="p">)</span><span class="o">.</span><span class="n">T</span> <span class="o">@</span> <span class="n">numpy</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">covariates</span><span class="p">)))</span>
+            <span class="o">@</span> <span class="n">numpy</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">covariates</span><span class="p">)</span><span class="o">.</span><span class="n">T</span>
+            <span class="o">@</span> <span class="n">mt</span>
+        <span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
+
+        <span class="k">return</span> <span class="mi">1</span> <span class="o">/</span> <span class="n">b</span>
+
+    <span class="k">def</span> <span class="nf">_bootstrap_utility</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">tpkey</span><span class="p">,</span> <span class="n">dataframekey</span><span class="p">,</span> <span class="n">idkey</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">tp_function</span><span class="p">,</span> <span class="n">bootstrap_kwargs</span>
+    <span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tp_data</span><span class="p">[</span><span class="n">tpkey</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;value&quot;</span><span class="p">:</span> <span class="n">value</span><span class="p">,</span>
+            <span class="s2">&quot;CI&quot;</span><span class="p">:</span> <span class="n">scipy</span><span class="o">.</span><span class="n">stats</span><span class="o">.</span><span class="n">bootstrap</span><span class="p">(</span>
+                <span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dataframekey</span><span class="p">)[</span><span class="n">idkey</span><span class="p">],</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dataframekey</span><span class="p">)[</span><span class="s2">&quot;MT&quot;</span><span class="p">]),</span>
+                <span class="n">tp_function</span><span class="p">,</span>
+                <span class="n">paired</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                <span class="n">vectorized</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                <span class="o">**</span><span class="n">bootstrap_kwargs</span><span class="p">,</span>
+            <span class="p">)</span><span class="o">.</span><span class="n">confidence_interval</span><span class="p">,</span>
+        <span class="p">}</span>
+
+    <span class="k">def</span> <span class="nf">_delta_utility</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tpkey</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">se</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tp_data</span><span class="p">[</span><span class="n">tpkey</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;value&quot;</span><span class="p">:</span> <span class="mi">1</span> <span class="o">/</span> <span class="n">b</span><span class="p">,</span>
+            <span class="s2">&quot;CI&quot;</span><span class="p">:</span> <span class="n">FittsModel</span><span class="o">.</span><span class="n">_get_ci_delta_method</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="n">se</span><span class="p">),</span>
+        <span class="p">}</span>
+
+    <span class="k">def</span> <span class="nf">_slope_tp_nominal</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">CI</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">bootstrap_kwargs</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;batch&quot;</span><span class="p">:</span> <span class="mi">4</span><span class="p">,</span> <span class="s2">&quot;n_resamples&quot;</span><span class="p">:</span> <span class="mi">9999</span><span class="p">}</span>
+    <span class="p">):</span>
+        <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">bse</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="n">_compute_lr</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">dataframe</span><span class="p">[</span><span class="s2">&quot;IDn&quot;</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">dataframe</span><span class="p">[</span><span class="s2">&quot;MT&quot;</span><span class="p">]</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_a_slope</span> <span class="o">=</span> <span class="n">a</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_b_slope</span> <span class="o">=</span> <span class="n">b</span>
+        <span class="k">if</span> <span class="n">CI</span> <span class="o">==</span> <span class="s2">&quot;bootstrap&quot;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_bootstrap_utility</span><span class="p">(</span>
+                <span class="s2">&quot;Slope-Nominal&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;dataframe&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;IDn&quot;</span><span class="p">,</span>
+                <span class="mi">1</span> <span class="o">/</span> <span class="n">b</span><span class="p">,</span>
+                <span class="n">FittsModel</span><span class="o">.</span><span class="n">_slope_tp</span><span class="p">,</span>
+                <span class="n">bootstrap_kwargs</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="k">elif</span> <span class="n">CI</span> <span class="o">==</span> <span class="s2">&quot;delta&quot;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_delta_utility</span><span class="p">(</span><span class="s2">&quot;Slope-Nominal&quot;</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">bse</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">tp_data</span><span class="p">[</span><span class="s2">&quot;Slope-Nominal&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">/</span> <span class="n">b</span>
+
+    <span class="k">def</span> <span class="nf">_slope_tp_nominal_agg</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">CI</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">bootstrap_kwargs</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;batch&quot;</span><span class="p">:</span> <span class="mi">4</span><span class="p">,</span> <span class="s2">&quot;n_resamples&quot;</span><span class="p">:</span> <span class="mi">9999</span><span class="p">}</span>
+    <span class="p">):</span>
+        <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">bse</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="n">_compute_lr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">agg_df</span><span class="p">[</span><span class="s2">&quot;IDn&quot;</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">agg_df</span><span class="p">[</span><span class="s2">&quot;MT&quot;</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_a_slope_agg</span> <span class="o">=</span> <span class="n">a</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_b_slope_agg</span> <span class="o">=</span> <span class="n">b</span>
+        <span class="k">if</span> <span class="n">CI</span> <span class="o">==</span> <span class="s2">&quot;bootstrap&quot;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_bootstrap_utility</span><span class="p">(</span>
+                <span class="s2">&quot;Agg-Slope-Nominal&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;agg_df&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;IDn&quot;</span><span class="p">,</span>
+                <span class="mi">1</span> <span class="o">/</span> <span class="n">b</span><span class="p">,</span>
+                <span class="n">FittsModel</span><span class="o">.</span><span class="n">_slope_tp</span><span class="p">,</span>
+                <span class="n">bootstrap_kwargs</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="k">elif</span> <span class="n">CI</span> <span class="o">==</span> <span class="s2">&quot;delta&quot;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_delta_utility</span><span class="p">(</span><span class="s2">&quot;Slope-Nominal&quot;</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">bse</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">tp_data</span><span class="p">[</span><span class="s2">&quot;Agg-Slope-Nominal&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">/</span> <span class="n">b</span>
+
+    <span class="k">def</span> <span class="nf">_slope_tp_effective</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">CI</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">bootstrap_kwargs</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;batch&quot;</span><span class="p">:</span> <span class="mi">4</span><span class="p">,</span> <span class="s2">&quot;n_resamples&quot;</span><span class="p">:</span> <span class="mi">9999</span><span class="p">}</span>
+    <span class="p">):</span>
+        <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">bse</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="n">_compute_lr</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">dataframe</span><span class="p">[</span><span class="s2">&quot;IDe&quot;</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">dataframe</span><span class="p">[</span><span class="s2">&quot;MT&quot;</span><span class="p">]</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_a_slope_e</span> <span class="o">=</span> <span class="n">a</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_b_slope_e</span> <span class="o">=</span> <span class="n">b</span>
+        <span class="k">if</span> <span class="n">CI</span> <span class="o">==</span> <span class="s2">&quot;bootstrap&quot;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_bootstrap_utility</span><span class="p">(</span>
+                <span class="s2">&quot;Slope-Effective&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;dataframe&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;IDe&quot;</span><span class="p">,</span>
+                <span class="mi">1</span> <span class="o">/</span> <span class="n">b</span><span class="p">,</span>
+                <span class="n">FittsModel</span><span class="o">.</span><span class="n">_slope_tp</span><span class="p">,</span>
+                <span class="n">bootstrap_kwargs</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="k">elif</span> <span class="n">CI</span> <span class="o">==</span> <span class="s2">&quot;delta&quot;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_delta_utility</span><span class="p">(</span><span class="s2">&quot;Slope-Effective&quot;</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">bse</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">tp_data</span><span class="p">[</span><span class="s2">&quot;Slope-Effective&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">/</span> <span class="n">b</span>
+
+    <span class="k">def</span> <span class="nf">_slope_tp_effective_agg</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">CI</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">bootstrap_kwargs</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;batch&quot;</span><span class="p">:</span> <span class="mi">4</span><span class="p">,</span> <span class="s2">&quot;n_resamples&quot;</span><span class="p">:</span> <span class="mi">9999</span><span class="p">}</span>
+    <span class="p">):</span>
+        <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">bse</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="n">_compute_lr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">agg_df</span><span class="p">[</span><span class="s2">&quot;IDe&quot;</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">agg_df</span><span class="p">[</span><span class="s2">&quot;MT&quot;</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_a_slope_e_agg</span> <span class="o">=</span> <span class="n">a</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_b_slope_e_agg</span> <span class="o">=</span> <span class="n">b</span>
+        <span class="k">if</span> <span class="n">CI</span> <span class="o">==</span> <span class="s2">&quot;bootstrap&quot;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_bootstrap_utility</span><span class="p">(</span>
+                <span class="s2">&quot;Agg-Slope-Effective&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;agg_df&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;IDe&quot;</span><span class="p">,</span>
+                <span class="mi">1</span> <span class="o">/</span> <span class="n">b</span><span class="p">,</span>
+                <span class="n">FittsModel</span><span class="o">.</span><span class="n">_slope_tp</span><span class="p">,</span>
+                <span class="n">bootstrap_kwargs</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="k">elif</span> <span class="n">CI</span> <span class="o">==</span> <span class="s2">&quot;delta&quot;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_delta_utility</span><span class="p">(</span><span class="s2">&quot;Agg-Slope-Effective&quot;</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">bse</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">tp_data</span><span class="p">[</span><span class="s2">&quot;Agg-Slope-Effective&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">/</span> <span class="n">b</span>
+
+    <span class="k">def</span> <span class="nf">_slope_tp_epsilon</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">CI</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">bootstrap_kwargs</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;batch&quot;</span><span class="p">:</span> <span class="mi">4</span><span class="p">,</span> <span class="s2">&quot;n_resamples&quot;</span><span class="p">:</span> <span class="mi">9999</span><span class="p">}</span>
+    <span class="p">):</span>
+        <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">bse</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="n">_compute_lr</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">dataframe</span><span class="p">[</span><span class="s2">&quot;IDepsilon&quot;</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">dataframe</span><span class="p">[</span><span class="s2">&quot;MT&quot;</span><span class="p">]</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_a_slope_eps</span> <span class="o">=</span> <span class="n">a</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_b_slope_eps</span> <span class="o">=</span> <span class="n">b</span>
+        <span class="k">if</span> <span class="n">CI</span> <span class="o">==</span> <span class="s2">&quot;bootstrap&quot;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_bootstrap_utility</span><span class="p">(</span>
+                <span class="s2">&quot;Slope-Epsilon&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;dataframe&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;IDepsilon&quot;</span><span class="p">,</span>
+                <span class="mi">1</span> <span class="o">/</span> <span class="n">b</span><span class="p">,</span>
+                <span class="n">FittsModel</span><span class="o">.</span><span class="n">_slope_tp</span><span class="p">,</span>
+                <span class="n">bootstrap_kwargs</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="k">elif</span> <span class="n">CI</span> <span class="o">==</span> <span class="s2">&quot;delta&quot;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_delta_utility</span><span class="p">(</span><span class="s2">&quot;Slope-Epsilon&quot;</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">bse</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">tp_data</span><span class="p">[</span><span class="s2">&quot;Slope-Epsilon&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">/</span> <span class="n">b</span>
+
+    <span class="k">def</span> <span class="nf">_slope_tp_epsilon_agg</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">CI</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">bootstrap_kwargs</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;batch&quot;</span><span class="p">:</span> <span class="mi">4</span><span class="p">,</span> <span class="s2">&quot;n_resamples&quot;</span><span class="p">:</span> <span class="mi">9999</span><span class="p">}</span>
+    <span class="p">):</span>
+        <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">bse</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="n">_compute_lr</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">agg_df</span><span class="p">[</span><span class="s2">&quot;IDepsilon&quot;</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">agg_df</span><span class="p">[</span><span class="s2">&quot;MT&quot;</span><span class="p">]</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_a_slope_eps_agg</span> <span class="o">=</span> <span class="n">a</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_b_slope_eps_agg</span> <span class="o">=</span> <span class="n">b</span>
+        <span class="k">if</span> <span class="n">CI</span> <span class="o">==</span> <span class="s2">&quot;bootstrap&quot;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_bootstrap_utility</span><span class="p">(</span>
+                <span class="s2">&quot;Agg-Slope-Epsilon&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;agg_df&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;IDepsilon&quot;</span><span class="p">,</span>
+                <span class="mi">1</span> <span class="o">/</span> <span class="n">b</span><span class="p">,</span>
+                <span class="n">FittsModel</span><span class="o">.</span><span class="n">_slope_tp</span><span class="p">,</span>
+                <span class="n">bootstrap_kwargs</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="k">elif</span> <span class="n">CI</span> <span class="o">==</span> <span class="s2">&quot;delta&quot;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_delta_utility</span><span class="p">(</span><span class="s2">&quot;Agg-Slope-Epsilon&quot;</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">bse</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">tp_data</span><span class="p">[</span><span class="s2">&quot;Agg-Slope-Epsilon&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">/</span> <span class="n">b</span>
+
+    <span class="k">def</span> <span class="nf">_slope_throughputs</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">CI</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">bootstrap_kwargs</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;batch&quot;</span><span class="p">:</span> <span class="mi">4</span><span class="p">,</span> <span class="s2">&quot;n_resamples&quot;</span><span class="p">:</span> <span class="mi">9999</span><span class="p">}</span>
+    <span class="p">):</span>
+        <span class="c1"># slope nominal</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_slope_tp_nominal</span><span class="p">(</span><span class="n">CI</span><span class="o">=</span><span class="n">CI</span><span class="p">,</span> <span class="n">bootstrap_kwargs</span><span class="o">=</span><span class="n">bootstrap_kwargs</span><span class="p">)</span>
+
+        <span class="c1"># Agg-Slope-Nominal</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_slope_tp_nominal_agg</span><span class="p">(</span><span class="n">CI</span><span class="o">=</span><span class="n">CI</span><span class="p">,</span> <span class="n">bootstrap_kwargs</span><span class="o">=</span><span class="n">bootstrap_kwargs</span><span class="p">)</span>
+
+        <span class="c1"># Slope effective</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_slope_tp_effective</span><span class="p">(</span><span class="n">CI</span><span class="o">=</span><span class="n">CI</span><span class="p">,</span> <span class="n">bootstrap_kwargs</span><span class="o">=</span><span class="n">bootstrap_kwargs</span><span class="p">)</span>
+
+        <span class="c1"># Agg-Slope-effective</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_slope_tp_effective_agg</span><span class="p">(</span><span class="n">CI</span><span class="o">=</span><span class="n">CI</span><span class="p">,</span> <span class="n">bootstrap_kwargs</span><span class="o">=</span><span class="n">bootstrap_kwargs</span><span class="p">)</span>
+
+        <span class="c1"># SLope-Epsilon</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_slope_tp_epsilon</span><span class="p">(</span><span class="n">CI</span><span class="o">=</span><span class="n">CI</span><span class="p">,</span> <span class="n">bootstrap_kwargs</span><span class="o">=</span><span class="n">bootstrap_kwargs</span><span class="p">)</span>
+
+        <span class="c1"># Agg-Slope-Epsilon</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_slope_tp_epsilon_agg</span><span class="p">(</span><span class="n">CI</span><span class="o">=</span><span class="n">CI</span><span class="p">,</span> <span class="n">bootstrap_kwargs</span><span class="o">=</span><span class="n">bootstrap_kwargs</span><span class="p">)</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_mm_tp</span><span class="p">(</span><span class="nb">id</span><span class="p">,</span> <span class="n">mt</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">numpy</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="nb">id</span> <span class="o">/</span> <span class="n">mt</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_mm_nominal</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">CI</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">bootstrap_kwargs</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;batch&quot;</span><span class="p">:</span> <span class="mi">4</span><span class="p">,</span> <span class="s2">&quot;n_resamples&quot;</span><span class="p">:</span> <span class="mi">9999</span><span class="p">}):</span>
+        <span class="k">if</span> <span class="n">CI</span> <span class="o">==</span> <span class="s2">&quot;bootstrap&quot;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_bootstrap_utility</span><span class="p">(</span>
+                <span class="s2">&quot;Mean-of-Means&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;agg_df&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;IDn&quot;</span><span class="p">,</span>
+                <span class="n">FittsModel</span><span class="o">.</span><span class="n">_mm_tp</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">agg_df</span><span class="p">[</span><span class="s2">&quot;IDn&quot;</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">agg_df</span><span class="p">[</span><span class="s2">&quot;MT&quot;</span><span class="p">]),</span>
+                <span class="n">FittsModel</span><span class="o">.</span><span class="n">_mm_tp</span><span class="p">,</span>
+                <span class="n">bootstrap_kwargs</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="k">elif</span> <span class="n">CI</span> <span class="o">==</span> <span class="s2">&quot;delta&quot;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">tp_data</span><span class="p">[</span><span class="s2">&quot;Mean-of-Means&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="s2">&quot;value&quot;</span><span class="p">:</span> <span class="n">FittsModel</span><span class="o">.</span><span class="n">_mm_tp</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">agg_df</span><span class="p">[</span><span class="s2">&quot;IDn&quot;</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">agg_df</span><span class="p">[</span><span class="s2">&quot;MT&quot;</span><span class="p">]),</span>
+                <span class="s2">&quot;CI&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="p">}</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">tp_data</span><span class="p">[</span><span class="s2">&quot;Mean-of-Means&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">FittsModel</span><span class="o">.</span><span class="n">_mm_tp</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">agg_df</span><span class="p">[</span><span class="s2">&quot;IDn&quot;</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">agg_df</span><span class="p">[</span><span class="s2">&quot;MT&quot;</span><span class="p">]</span>
+            <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_mm_effective</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">CI</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">bootstrap_kwargs</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;batch&quot;</span><span class="p">:</span> <span class="mi">4</span><span class="p">,</span> <span class="s2">&quot;n_resamples&quot;</span><span class="p">:</span> <span class="mi">9999</span><span class="p">}</span>
+    <span class="p">):</span>
+        <span class="k">if</span> <span class="n">CI</span> <span class="o">==</span> <span class="s2">&quot;bootstrap&quot;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_bootstrap_utility</span><span class="p">(</span>
+                <span class="s2">&quot;ISO&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;agg_df&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;IDe&quot;</span><span class="p">,</span>
+                <span class="n">FittsModel</span><span class="o">.</span><span class="n">_mm_tp</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">agg_df</span><span class="p">[</span><span class="s2">&quot;IDe&quot;</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">agg_df</span><span class="p">[</span><span class="s2">&quot;MT&quot;</span><span class="p">]),</span>
+                <span class="n">FittsModel</span><span class="o">.</span><span class="n">_mm_tp</span><span class="p">,</span>
+                <span class="n">bootstrap_kwargs</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="k">elif</span> <span class="n">CI</span> <span class="o">==</span> <span class="s2">&quot;delta&quot;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">tp_data</span><span class="p">[</span><span class="s2">&quot;ISO&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="s2">&quot;value&quot;</span><span class="p">:</span> <span class="n">FittsModel</span><span class="o">.</span><span class="n">_mm_tp</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">agg_df</span><span class="p">[</span><span class="s2">&quot;IDe&quot;</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">agg_df</span><span class="p">[</span><span class="s2">&quot;MT&quot;</span><span class="p">]),</span>
+                <span class="s2">&quot;CI&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="p">}</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">tp_data</span><span class="p">[</span><span class="s2">&quot;ISO&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">FittsModel</span><span class="o">.</span><span class="n">_mm_tp</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">agg_df</span><span class="p">[</span><span class="s2">&quot;IDe&quot;</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">agg_df</span><span class="p">[</span><span class="s2">&quot;MT&quot;</span><span class="p">]</span>
+            <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_mm_epsilon</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">CI</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">bootstrap_kwargs</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;batch&quot;</span><span class="p">:</span> <span class="mi">4</span><span class="p">,</span> <span class="s2">&quot;n_resamples&quot;</span><span class="p">:</span> <span class="mi">9999</span><span class="p">}):</span>
+        <span class="k">if</span> <span class="n">CI</span> <span class="o">==</span> <span class="s2">&quot;bootstrap&quot;</span><span class="p">:</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">_bootstrap_utility</span><span class="p">(</span>
+                <span class="s2">&quot;Mean-of-Means-epsilon&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;agg_df&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;IDepsilon&quot;</span><span class="p">,</span>
+                <span class="n">FittsModel</span><span class="o">.</span><span class="n">_mm_tp</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">agg_df</span><span class="p">[</span><span class="s2">&quot;IDepsilon&quot;</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">agg_df</span><span class="p">[</span><span class="s2">&quot;MT&quot;</span><span class="p">]),</span>
+                <span class="n">FittsModel</span><span class="o">.</span><span class="n">_mm_tp</span><span class="p">,</span>
+                <span class="n">bootstrap_kwargs</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="k">elif</span> <span class="n">CI</span> <span class="o">==</span> <span class="s2">&quot;delta&quot;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">tp_data</span><span class="p">[</span><span class="s2">&quot;Mean-of-Means-epsilon&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="s2">&quot;value&quot;</span><span class="p">:</span> <span class="n">FittsModel</span><span class="o">.</span><span class="n">_mm_tp</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">agg_df</span><span class="p">[</span><span class="s2">&quot;IDepsilon&quot;</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">agg_df</span><span class="p">[</span><span class="s2">&quot;MT&quot;</span><span class="p">]),</span>
+                <span class="s2">&quot;CI&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="p">}</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">tp_data</span><span class="p">[</span><span class="s2">&quot;Mean-of-Means-epsilon&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">FittsModel</span><span class="o">.</span><span class="n">_mm_tp</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">agg_df</span><span class="p">[</span><span class="s2">&quot;IDepsilon&quot;</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">agg_df</span><span class="p">[</span><span class="s2">&quot;MT&quot;</span><span class="p">]</span>
+            <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_mean_of_means</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">CI</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">bootstrap_kwargs</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;batch&quot;</span><span class="p">:</span> <span class="mi">4</span><span class="p">,</span> <span class="s2">&quot;n_resamples&quot;</span><span class="p">:</span> <span class="mi">9999</span><span class="p">}</span>
+    <span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_mm_nominal</span><span class="p">(</span><span class="n">CI</span><span class="o">=</span><span class="n">CI</span><span class="p">,</span> <span class="n">bootstrap_kwargs</span><span class="o">=</span><span class="n">bootstrap_kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_mm_effective</span><span class="p">(</span><span class="n">CI</span><span class="o">=</span><span class="n">CI</span><span class="p">,</span> <span class="n">bootstrap_kwargs</span><span class="o">=</span><span class="n">bootstrap_kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_mm_epsilon</span><span class="p">(</span><span class="n">CI</span><span class="o">=</span><span class="n">CI</span><span class="p">,</span> <span class="n">bootstrap_kwargs</span><span class="o">=</span><span class="n">bootstrap_kwargs</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_augment</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_add_line_per_line_to_df</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_add_line_per_line_agg_to_df</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">_add_line_per_line_to_df</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dataframe</span><span class="p">[</span><span class="s2">&quot;effective_distance&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="n">_effective_distance</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">dataframe</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dataframe</span><span class="p">[</span><span class="s2">&quot;error&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="n">_detect_error</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dataframe</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dataframe</span><span class="p">[</span><span class="s2">&quot;IDn&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="n">_id</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dataframe</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_add_line_per_line_agg_to_df</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">dataframe</span><span class="p">[</span><span class="s2">&quot;epsilon&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="n">_broadcast_group_func_to_df</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">dataframe</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">aggregate_labels</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="n">_epsilon</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dataframe</span><span class="p">[</span><span class="s2">&quot;sigma&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="n">_broadcast_group_func_to_df</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">dataframe</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">aggregate_labels</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="n">_sigma</span>
+        <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">dataframe</span><span class="p">[</span><span class="s2">&quot;IDepsilon&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="n">_broadcast_group_func_to_df</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">dataframe</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">aggregate_labels</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="n">_idepsilon</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dataframe</span><span class="p">[</span><span class="s2">&quot;IDe&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="n">_broadcast_group_func_to_df</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">dataframe</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">aggregate_labels</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="n">_ide</span>
+        <span class="p">)</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_compute_lr</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">sm</span><span class="o">.</span><span class="n">add_constant</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="n">lm__out</span> <span class="o">=</span> <span class="n">sm</span><span class="o">.</span><span class="n">OLS</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">()</span>
+        <span class="k">return</span> <span class="o">*</span><span class="n">lm__out</span><span class="o">.</span><span class="n">params</span><span class="p">,</span> <span class="n">lm__out</span><span class="o">.</span><span class="n">bse</span>
+
+    <span class="nd">@staticmethod</span>  <span class="c1"># https://stackoverflow.com/questions/53747080/broadcast-groupby-result-as-new-column-in-original-dataframe</span>
+    <span class="k">def</span> <span class="nf">_broadcast_group_func_to_df</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">group_labels</span><span class="p">,</span> <span class="n">func</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="n">df</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="n">group_labels</span><span class="p">,</span> <span class="n">group_keys</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span>
+                <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">pandas</span><span class="o">.</span><span class="n">Series</span><span class="p">(</span><span class="n">func</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="n">index</span><span class="o">=</span><span class="n">x</span><span class="o">.</span><span class="n">index</span><span class="p">)</span><span class="o">.</span><span class="n">to_frame</span><span class="p">()</span>
+            <span class="p">)</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">iloc</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_epsilon</span><span class="p">(</span><span class="n">df</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">df</span><span class="p">[</span><span class="s2">&quot;error&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">replace</span><span class="p">({</span><span class="kc">True</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span> <span class="kc">False</span><span class="p">:</span> <span class="mi">0</span><span class="p">})</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_ide</span><span class="p">(</span><span class="n">df</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">numpy</span><span class="o">.</span><span class="n">log2</span><span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="n">df</span><span class="p">[</span><span class="s2">&quot;effective_distance&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span> <span class="o">/</span> <span class="p">(</span><span class="mf">4.133</span> <span class="o">*</span> <span class="n">df</span><span class="p">[</span><span class="s2">&quot;sigma&quot;</span><span class="p">]))</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_idepsilon</span><span class="p">(</span><span class="n">df</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">df</span><span class="p">[</span><span class="s2">&quot;epsilon&quot;</span><span class="p">])</span> <span class="o">*</span> <span class="n">numpy</span><span class="o">.</span><span class="n">log2</span><span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="n">df</span><span class="p">[</span><span class="s2">&quot;A&quot;</span><span class="p">]</span> <span class="o">/</span> <span class="n">df</span><span class="p">[</span><span class="s2">&quot;W&quot;</span><span class="p">])</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_id</span><span class="p">(</span><span class="n">df</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">numpy</span><span class="o">.</span><span class="n">log2</span><span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="n">df</span><span class="p">[</span><span class="s2">&quot;A&quot;</span><span class="p">]</span> <span class="o">/</span> <span class="n">df</span><span class="p">[</span><span class="s2">&quot;W&quot;</span><span class="p">])</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_effective_distance</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">((</span><span class="n">x</span><span class="p">[</span><span class="s2">&quot;Xf&quot;</span><span class="p">]</span> <span class="o">-</span> <span class="n">x</span><span class="p">[</span><span class="s2">&quot;X0&quot;</span><span class="p">])</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">+</span> <span class="p">((</span><span class="n">x</span><span class="p">[</span><span class="s2">&quot;Yf&quot;</span><span class="p">]</span> <span class="o">-</span> <span class="n">x</span><span class="p">[</span><span class="s2">&quot;Y0&quot;</span><span class="p">])</span> <span class="o">**</span> <span class="mi">2</span><span class="p">))</span> <span class="o">**</span> <span class="p">(</span><span class="mi">1</span> <span class="o">/</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">numpy</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="s2">&quot;Xf&quot;</span><span class="p">]</span> <span class="o">-</span> <span class="n">x</span><span class="p">[</span><span class="s2">&quot;X0&quot;</span><span class="p">])</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_detect_error</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">((</span><span class="n">x</span><span class="p">[</span><span class="s2">&quot;Xf&quot;</span><span class="p">]</span> <span class="o">-</span> <span class="n">x</span><span class="p">[</span><span class="s2">&quot;Xt&quot;</span><span class="p">])</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">+</span> <span class="p">((</span><span class="n">x</span><span class="p">[</span><span class="s2">&quot;Yf&quot;</span><span class="p">]</span> <span class="o">-</span> <span class="n">x</span><span class="p">[</span><span class="s2">&quot;Yt&quot;</span><span class="p">])</span> <span class="o">**</span> <span class="mi">2</span><span class="p">))</span> <span class="o">**</span> <span class="p">(</span>
+                <span class="mi">1</span> <span class="o">/</span> <span class="mi">2</span>
+            <span class="p">)</span> <span class="o">&gt;</span> <span class="n">x</span><span class="p">[</span><span class="s2">&quot;W&quot;</span><span class="p">]</span>
+        <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">numpy</span><span class="o">.</span><span class="n">abs</span><span class="p">((</span><span class="n">x</span><span class="p">[</span><span class="s2">&quot;Xf&quot;</span><span class="p">]</span> <span class="o">-</span> <span class="n">x</span><span class="p">[</span><span class="s2">&quot;Xt&quot;</span><span class="p">]))</span> <span class="o">&gt;</span> <span class="n">x</span><span class="p">[</span><span class="s2">&quot;W&quot;</span><span class="p">]</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_sigma</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+        <span class="c1"># sigma is computed as the square root of the largest eigenvalue of the covariance matrix (spectral norm), see Gori, J. and Bellut, Q., Positional Variance Profiles (PVPs): A New Take on the Speed-Accuracy,CHI &#39;23, April 23–28, 2023, Hamburg, Germany  for more information</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">(</span>
+                <span class="n">numpy</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span>
+                    <span class="n">numpy</span><span class="o">.</span><span class="n">cov</span><span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="s2">&quot;Xf&quot;</span><span class="p">],</span> <span class="n">x</span><span class="p">[</span><span class="s2">&quot;Yf&quot;</span><span class="p">],</span> <span class="n">rowvar</span><span class="o">=</span><span class="kc">False</span><span class="p">),</span>
+                    <span class="nb">ord</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+                <span class="p">)</span>
+                <span class="o">**</span> <span class="p">(</span><span class="mi">1</span> <span class="o">/</span> <span class="mi">2</span><span class="p">)</span>
+            <span class="p">)</span>
+        <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">numpy</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="s2">&quot;Xf&quot;</span><span class="p">])</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_regplot</span><span class="p">(</span><span class="n">ax</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="o">**</span><span class="n">regkwargs</span><span class="p">):</span>
+        <span class="n">xmin</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="n">xmax</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">([</span><span class="n">xmin</span><span class="p">,</span> <span class="n">xmax</span><span class="p">],</span> <span class="p">[</span><span class="n">a</span> <span class="o">+</span> <span class="n">xmin</span> <span class="o">*</span> <span class="n">b</span><span class="p">,</span> <span class="n">a</span> <span class="o">+</span> <span class="n">xmax</span> <span class="o">*</span> <span class="n">b</span><span class="p">],</span> <span class="s2">&quot;-&quot;</span><span class="p">,</span> <span class="o">**</span><span class="n">regkwargs</span><span class="p">)</span>
+
+    <span class="c1"># ===== Plots ==== #</span>
+    <span class="k">def</span> <span class="nf">plot_fitts_ID_all</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ax</span><span class="p">,</span> <span class="n">reg</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">dataframe</span><span class="p">[</span><span class="s2">&quot;IDn&quot;</span><span class="p">],</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">dataframe</span><span class="p">[</span><span class="s2">&quot;MT&quot;</span><span class="p">],</span>
+            <span class="s2">&quot;bo&quot;</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+            <span class="n">label</span><span class="o">=</span><span class="s2">&quot;MT vs ID&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">reg</span><span class="p">:</span>
+            <span class="k">return</span>
+        <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="n">_regplot</span><span class="p">(</span>
+            <span class="n">ax</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">dataframe</span><span class="p">[</span><span class="s2">&quot;IDn&quot;</span><span class="p">],</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_a_slope</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_b_slope</span><span class="p">,</span>
+            <span class="n">label</span><span class="o">=</span><span class="s2">&quot;lr&quot;</span><span class="p">,</span>
+            <span class="n">color</span><span class="o">=</span><span class="s2">&quot;r&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="n">_regplot</span><span class="p">(</span>
+            <span class="n">ax</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">dataframe</span><span class="p">[</span><span class="s2">&quot;IDn&quot;</span><span class="p">],</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_a_emg</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_b_emg</span><span class="p">,</span>
+            <span class="n">label</span><span class="o">=</span><span class="s2">&quot;emg&quot;</span><span class="p">,</span>
+            <span class="n">color</span><span class="o">=</span><span class="s2">&quot;g&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">plot_fitts_ID_agg</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ax</span><span class="p">,</span> <span class="n">reg</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">agg_df</span><span class="p">[</span><span class="s2">&quot;IDn&quot;</span><span class="p">],</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">agg_df</span><span class="p">[</span><span class="s2">&quot;MT&quot;</span><span class="p">],</span>
+            <span class="s2">&quot;bo&quot;</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+            <span class="n">label</span><span class="o">=</span><span class="s2">&quot;&lt;MT&gt; vs &lt;ID&gt;&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">reg</span><span class="p">:</span>
+            <span class="k">return</span>
+        <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="n">_regplot</span><span class="p">(</span>
+            <span class="n">ax</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">agg_df</span><span class="p">[</span><span class="s2">&quot;IDn&quot;</span><span class="p">],</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_a_slope_agg</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_b_slope_agg</span><span class="p">,</span>
+            <span class="n">label</span><span class="o">=</span><span class="s2">&quot;lr&quot;</span><span class="p">,</span>
+            <span class="n">color</span><span class="o">=</span><span class="s2">&quot;r&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="n">_regplot</span><span class="p">(</span>
+            <span class="n">ax</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">agg_df</span><span class="p">[</span><span class="s2">&quot;IDn&quot;</span><span class="p">],</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_a_emg_agg</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_b_emg_agg</span><span class="p">,</span>
+            <span class="n">label</span><span class="o">=</span><span class="s2">&quot;emg&quot;</span><span class="p">,</span>
+            <span class="n">color</span><span class="o">=</span><span class="s2">&quot;g&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">plot_fitts_IDe_all</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ax</span><span class="p">,</span> <span class="n">reg</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">dataframe</span><span class="p">[</span><span class="s2">&quot;IDe&quot;</span><span class="p">],</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">dataframe</span><span class="p">[</span><span class="s2">&quot;MT&quot;</span><span class="p">],</span>
+            <span class="s2">&quot;bo&quot;</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+            <span class="n">label</span><span class="o">=</span><span class="s2">&quot;MT vs IDe&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">reg</span><span class="p">:</span>
+            <span class="k">return</span>
+        <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="n">_regplot</span><span class="p">(</span>
+            <span class="n">ax</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">dataframe</span><span class="p">[</span><span class="s2">&quot;IDe&quot;</span><span class="p">],</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_a_slope_e</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_b_slope_e</span><span class="p">,</span>
+            <span class="n">label</span><span class="o">=</span><span class="s2">&quot;lr&quot;</span><span class="p">,</span>
+            <span class="n">color</span><span class="o">=</span><span class="s2">&quot;r&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="n">_regplot</span><span class="p">(</span>
+            <span class="n">ax</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">dataframe</span><span class="p">[</span><span class="s2">&quot;IDe&quot;</span><span class="p">],</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_a_emg_e</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_b_emg_e</span><span class="p">,</span>
+            <span class="n">label</span><span class="o">=</span><span class="s2">&quot;emg&quot;</span><span class="p">,</span>
+            <span class="n">color</span><span class="o">=</span><span class="s2">&quot;g&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">plot_fitts_IDe_agg</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ax</span><span class="p">,</span> <span class="n">reg</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">agg_df</span><span class="p">[</span><span class="s2">&quot;IDe&quot;</span><span class="p">],</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">agg_df</span><span class="p">[</span><span class="s2">&quot;MT&quot;</span><span class="p">],</span>
+            <span class="s2">&quot;bo&quot;</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+            <span class="n">label</span><span class="o">=</span><span class="s2">&quot;&lt;MT&gt; vs IDe&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">reg</span><span class="p">:</span>
+            <span class="k">return</span>
+        <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="n">_regplot</span><span class="p">(</span>
+            <span class="n">ax</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">agg_df</span><span class="p">[</span><span class="s2">&quot;IDe&quot;</span><span class="p">],</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_a_slope_e_agg</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_b_slope_e_agg</span><span class="p">,</span>
+            <span class="n">label</span><span class="o">=</span><span class="s2">&quot;lr&quot;</span><span class="p">,</span>
+            <span class="n">color</span><span class="o">=</span><span class="s2">&quot;r&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="n">_regplot</span><span class="p">(</span>
+            <span class="n">ax</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">agg_df</span><span class="p">[</span><span class="s2">&quot;IDe&quot;</span><span class="p">],</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_a_emg_e_agg</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_b_emg_e_agg</span><span class="p">,</span>
+            <span class="n">label</span><span class="o">=</span><span class="s2">&quot;emg&quot;</span><span class="p">,</span>
+            <span class="n">color</span><span class="o">=</span><span class="s2">&quot;g&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">plot_fitts_IDepsilon_all</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ax</span><span class="p">,</span> <span class="n">reg</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">dataframe</span><span class="p">[</span><span class="s2">&quot;IDepsilon&quot;</span><span class="p">],</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">dataframe</span><span class="p">[</span><span class="s2">&quot;MT&quot;</span><span class="p">],</span>
+            <span class="s2">&quot;bo&quot;</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+            <span class="n">label</span><span class="o">=</span><span class="sa">r</span><span class="s2">&quot;MT vs ID$(\varepsilon)$&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">reg</span><span class="p">:</span>
+            <span class="k">return</span>
+        <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="n">_regplot</span><span class="p">(</span>
+            <span class="n">ax</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">dataframe</span><span class="p">[</span><span class="s2">&quot;IDepsilon&quot;</span><span class="p">],</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_a_slope_eps</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_b_slope_eps</span><span class="p">,</span>
+            <span class="n">label</span><span class="o">=</span><span class="s2">&quot;lr&quot;</span><span class="p">,</span>
+            <span class="n">color</span><span class="o">=</span><span class="s2">&quot;r&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="n">_regplot</span><span class="p">(</span>
+            <span class="n">ax</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">dataframe</span><span class="p">[</span><span class="s2">&quot;IDepsilon&quot;</span><span class="p">],</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_a_emg_eps</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_b_emg_eps</span><span class="p">,</span>
+            <span class="n">label</span><span class="o">=</span><span class="s2">&quot;emg&quot;</span><span class="p">,</span>
+            <span class="n">color</span><span class="o">=</span><span class="s2">&quot;g&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">plot_fitts_IDepsilon_agg</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ax</span><span class="p">,</span> <span class="n">reg</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">agg_df</span><span class="p">[</span><span class="s2">&quot;IDepsilon&quot;</span><span class="p">],</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">agg_df</span><span class="p">[</span><span class="s2">&quot;MT&quot;</span><span class="p">],</span>
+            <span class="s2">&quot;bo&quot;</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+            <span class="n">label</span><span class="o">=</span><span class="sa">r</span><span class="s2">&quot;&lt;MT&gt; vs ID$(\varepsilon)$&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">reg</span><span class="p">:</span>
+            <span class="k">return</span>
+        <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="n">_regplot</span><span class="p">(</span>
+            <span class="n">ax</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">agg_df</span><span class="p">[</span><span class="s2">&quot;IDepsilon&quot;</span><span class="p">],</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_a_slope_eps_agg</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_b_slope_eps_agg</span><span class="p">,</span>
+            <span class="n">label</span><span class="o">=</span><span class="s2">&quot;lr&quot;</span><span class="p">,</span>
+            <span class="n">color</span><span class="o">=</span><span class="s2">&quot;r&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="n">_regplot</span><span class="p">(</span>
+            <span class="n">ax</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">agg_df</span><span class="p">[</span><span class="s2">&quot;IDepsilon&quot;</span><span class="p">],</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_a_emg_eps_agg</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_b_emg_eps_agg</span><span class="p">,</span>
+            <span class="n">label</span><span class="o">=</span><span class="s2">&quot;emg&quot;</span><span class="p">,</span>
+            <span class="n">color</span><span class="o">=</span><span class="s2">&quot;g&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">summary</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">return_string</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">tabulate_kwargs</span><span class="o">=</span><span class="p">{</span>
+            <span class="s2">&quot;tablefmt&quot;</span><span class="p">:</span> <span class="s2">&quot;fancy_grid&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;floatfmt&quot;</span><span class="p">:</span> <span class="s2">&quot;.3f&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;maxcolwidths&quot;</span><span class="p">:</span> <span class="mi">10</span><span class="p">,</span>
+        <span class="p">},</span>
+    <span class="p">):</span>
+        <span class="n">dic</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">v</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">tp_data</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">v</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">}</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ci</span><span class="p">:</span>
+            <span class="n">tabu</span> <span class="o">=</span> <span class="n">tabulate</span><span class="p">(</span>
+                <span class="p">[</span>
+                    <span class="n">dic</span><span class="o">.</span><span class="n">keys</span><span class="p">(),</span>
+                    <span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="nb">float</span><span class="p">(</span><span class="n">v</span><span class="p">[</span><span class="s1">&#39;value&#39;</span><span class="p">])</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2">&quot;</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">dic</span><span class="o">.</span><span class="n">values</span><span class="p">()],</span>
+                    <span class="p">[</span>
+                        <span class="sa">f</span><span class="s2">&quot;[</span><span class="si">{</span><span class="nb">float</span><span class="p">(</span><span class="n">v</span><span class="p">[</span><span class="s1">&#39;CI&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">low</span><span class="p">)</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2">, </span><span class="si">{</span><span class="nb">float</span><span class="p">(</span><span class="n">v</span><span class="p">[</span><span class="s1">&#39;CI&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">high</span><span class="p">)</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2">]&quot;</span>
+                        <span class="k">if</span> <span class="n">v</span><span class="p">[</span><span class="s2">&quot;CI&quot;</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+                        <span class="k">else</span> <span class="s2">&quot;&quot;</span>
+                        <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">dic</span><span class="o">.</span><span class="n">values</span><span class="p">()</span>
+                    <span class="p">],</span>
+                <span class="p">],</span>
+                <span class="n">headers</span><span class="o">=</span><span class="s2">&quot;firstrow&quot;</span><span class="p">,</span>
+                <span class="o">**</span><span class="n">tabulate_kwargs</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">tabu</span> <span class="o">=</span> <span class="n">tabulate</span><span class="p">(</span>
+                <span class="p">[</span><span class="n">dic</span><span class="o">.</span><span class="n">keys</span><span class="p">(),</span> <span class="n">dic</span><span class="o">.</span><span class="n">values</span><span class="p">()],</span> <span class="n">headers</span><span class="o">=</span><span class="s2">&quot;firstrow&quot;</span><span class="p">,</span> <span class="o">**</span><span class="n">tabulate_kwargs</span>
+            <span class="p">)</span>
+        <span class="k">if</span> <span class="n">return_string</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">tabu</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">tabu</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="FittsModelNoW"><a class="viewcode-back" href="../../_autosummary/pointing_utils.throughput.FittsModelNoW.html#pointing_utils.throughput.FittsModelNoW">[docs]</a><span class="k">class</span> <span class="nc">FittsModelNoW</span><span class="p">(</span><span class="n">FittsModel</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">dataframe</span><span class="p">,</span>
+        <span class="n">aggregate</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;Participant&quot;</span><span class="p">,</span> <span class="s2">&quot;A&quot;</span><span class="p">],</span>
+        <span class="n">throughputs</span><span class="o">=</span><span class="s2">&quot;all&quot;</span><span class="p">,</span>
+        <span class="n">CI</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">dataframe</span><span class="p">,</span> <span class="n">aggregate</span><span class="o">=</span><span class="n">aggregate</span><span class="p">,</span> <span class="n">throughputs</span><span class="o">=</span><span class="n">throughputs</span><span class="p">,</span> <span class="n">CI</span><span class="o">=</span><span class="n">CI</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_aggregate</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">agg_df</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">dataframe</span><span class="o">.</span><span class="n">drop</span><span class="p">([</span><span class="s2">&quot;X0&quot;</span><span class="p">,</span> <span class="s2">&quot;Y0&quot;</span><span class="p">,</span> <span class="s2">&quot;Xf&quot;</span><span class="p">,</span> <span class="s2">&quot;Yf&quot;</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+                <span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">aggregate_labels</span><span class="p">)</span>
+                <span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+            <span class="p">)</span>
+        <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">agg_df</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">dataframe</span><span class="o">.</span><span class="n">drop</span><span class="p">([</span><span class="s2">&quot;X0&quot;</span><span class="p">,</span> <span class="s2">&quot;Xf&quot;</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+                <span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">aggregate_labels</span><span class="p">)</span>
+                <span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+            <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_emg_regression</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">CI</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_emg_reg_effective</span><span class="p">(</span><span class="n">CI</span><span class="o">=</span><span class="n">CI</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_emg_reg_effective_agg</span><span class="p">(</span><span class="n">CI</span><span class="o">=</span><span class="n">CI</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_slope_throughputs</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">CI</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">bootstrap_kwargs</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;batch&quot;</span><span class="p">:</span> <span class="mi">4</span><span class="p">,</span> <span class="s2">&quot;n_resamples&quot;</span><span class="p">:</span> <span class="mi">9999</span><span class="p">}</span>
+    <span class="p">):</span>
+        <span class="c1"># Slope effective</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_slope_tp_effective</span><span class="p">(</span><span class="n">CI</span><span class="o">=</span><span class="n">CI</span><span class="p">,</span> <span class="n">bootstrap_kwargs</span><span class="o">=</span><span class="n">bootstrap_kwargs</span><span class="p">)</span>
+
+        <span class="c1"># Agg-Slope-effective</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_slope_tp_effective_agg</span><span class="p">(</span><span class="n">CI</span><span class="o">=</span><span class="n">CI</span><span class="p">,</span> <span class="n">bootstrap_kwargs</span><span class="o">=</span><span class="n">bootstrap_kwargs</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_mean_of_means</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">CI</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">bootstrap_kwargs</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;batch&quot;</span><span class="p">:</span> <span class="mi">4</span><span class="p">,</span> <span class="s2">&quot;n_resamples&quot;</span><span class="p">:</span> <span class="mi">9999</span><span class="p">}</span>
+    <span class="p">):</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_mm_effective</span><span class="p">(</span><span class="n">CI</span><span class="o">=</span><span class="n">CI</span><span class="p">,</span> <span class="n">bootstrap_kwargs</span><span class="o">=</span><span class="n">bootstrap_kwargs</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_add_line_per_line_to_df</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dataframe</span><span class="p">[</span><span class="s2">&quot;effective_distance&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="n">_effective_distance</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">dataframe</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_add_line_per_line_agg_to_df</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">dataframe</span><span class="p">[</span><span class="s2">&quot;sigma&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="n">_broadcast_group_func_to_df</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">dataframe</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">aggregate_labels</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="n">_sigma</span>
+        <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">dataframe</span><span class="p">[</span><span class="s2">&quot;IDe&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="n">_broadcast_group_func_to_df</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">dataframe</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">aggregate_labels</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="n">_ide</span>
+        <span class="p">)</span></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, Julien Gori.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

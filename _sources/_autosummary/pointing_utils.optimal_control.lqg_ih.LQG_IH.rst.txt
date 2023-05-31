@@ -1,0 +1,28 @@
+pointing\_utils.optimal\_control.lqg\_ih.LQG\_IH
+================================================
+
+.. currentmodule:: pointing_utils.optimal_control.lqg_ih
+
+.. autoclass:: LQG_IH
+   :members:
+   :show-inheritance:
+   :inherited-members:
+   :special-members: __call__, __add__, __mul__
+
+   
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+      :nosignatures:
+   
+      ~LQG_IH.compute_kalman_matrices
+      ~LQG_IH.reset
+      ~LQG_IH.simulate
+      ~LQG_IH.step
+   
+   
+
+   
+   
+   

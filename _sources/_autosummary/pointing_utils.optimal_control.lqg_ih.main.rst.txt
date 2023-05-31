@@ -1,0 +1,6 @@
+pointing\_utils.optimal\_control.lqg\_ih.main
+=============================================
+
+.. currentmodule:: pointing_utils.optimal_control.lqg_ih
+
+.. autofunction:: main

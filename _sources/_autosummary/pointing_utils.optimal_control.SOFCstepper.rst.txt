@@ -1,0 +1,39 @@
+pointing\_utils.optimal\_control.SOFCstepper
+============================================
+
+.. automodule:: pointing_utils.optimal_control.SOFCstepper
+
+   
+   
+   
+
+   
+   
+   
+
+   
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+      :toctree:
+      :template: custom-class-template.rst
+      :nosignatures:
+   
+      SOFCStepper
+   
+   
+
+   
+   
+   .. rubric:: Exceptions
+
+   .. autosummary::
+      :toctree:
+   
+      UnstableClosedLoopSystemError
+   
+   
+
+
+

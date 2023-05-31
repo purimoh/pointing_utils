@@ -1,0 +1,40 @@
+pointing\_utils.optimal\_control.phillis1985family
+==================================================
+
+.. automodule:: pointing_utils.optimal_control.phillis1985family
+
+   
+   
+   
+
+   
+   
+   
+
+   
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+      :toctree:
+      :template: custom-class-template.rst
+      :nosignatures:
+   
+      Phillis1985Family
+   
+   
+
+   
+   
+   .. rubric:: Exceptions
+
+   .. autosummary::
+      :toctree:
+   
+      KLDidNotConvergeError
+      KLNotValidatedError
+   
+   
+
+
+

@@ -1,0 +1,40 @@
+pointing\_utils.optimal\_control.li2018.Li2018
+==============================================
+
+.. currentmodule:: pointing_utils.optimal_control.li2018
+
+.. autoclass:: Li2018
+   :members:
+   :show-inheritance:
+   :inherited-members:
+   :special-members: __call__, __add__, __mul__
+
+   
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+      :nosignatures:
+   
+      ~Li2018.LinRicatti
+      ~Li2018.check_KL
+      ~Li2018.check_stability
+      ~Li2018.compute_kalman_matrices
+      ~Li2018.counted_decorator
+      ~Li2018.find_K_L_recursion
+      ~Li2018.plot_trajectories
+      ~Li2018.reset
+      ~Li2018.simulate
+      ~Li2018.step
+   
+   
+
+   
+   
+   .. rubric:: Attributes
+
+   .. autosummary::
+   
+      ~Li2018.C
+   
+   

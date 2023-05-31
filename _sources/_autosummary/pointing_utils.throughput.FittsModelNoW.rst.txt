@@ -1,0 +1,31 @@
+pointing\_utils.throughput.FittsModelNoW
+========================================
+
+.. currentmodule:: pointing_utils.throughput
+
+.. autoclass:: FittsModelNoW
+   :members:
+   :show-inheritance:
+   :inherited-members:
+   :special-members: __call__, __add__, __mul__
+
+   
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+      :nosignatures:
+   
+      ~FittsModelNoW.plot_fitts_ID_agg
+      ~FittsModelNoW.plot_fitts_ID_all
+      ~FittsModelNoW.plot_fitts_IDe_agg
+      ~FittsModelNoW.plot_fitts_IDe_all
+      ~FittsModelNoW.plot_fitts_IDepsilon_agg
+      ~FittsModelNoW.plot_fitts_IDepsilon_all
+      ~FittsModelNoW.summary
+   
+   
+
+   
+   
+   

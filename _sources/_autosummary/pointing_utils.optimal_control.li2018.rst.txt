@@ -1,0 +1,40 @@
+pointing\_utils.optimal\_control.li2018
+=======================================
+
+.. automodule:: pointing_utils.optimal_control.li2018
+
+   
+   
+   
+
+   
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+      :toctree:
+      :nosignatures:
+   
+      main
+   
+   
+
+   
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+      :toctree:
+      :template: custom-class-template.rst
+      :nosignatures:
+   
+      Li2018
+   
+   
+
+   
+   
+   
+
+
+

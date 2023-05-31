@@ -1,0 +1,6 @@
+pointing\_utils.optimal\_control.qian2013.main
+==============================================
+
+.. currentmodule:: pointing_utils.optimal_control.qian2013
+
+.. autofunction:: main

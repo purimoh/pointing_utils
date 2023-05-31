@@ -1,0 +1,42 @@
+pointing\_utils.optimal\_control.qian2013
+=========================================
+
+.. automodule:: pointing_utils.optimal_control.qian2013
+
+   
+   
+   
+
+   
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+      :toctree:
+      :nosignatures:
+   
+      main
+   
+   
+
+   
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+      :toctree:
+      :template: custom-class-template.rst
+      :nosignatures:
+   
+      Qian2013
+      Qian2013_1D
+      Qian2013_3D
+   
+   
+
+   
+   
+   
+
+
+

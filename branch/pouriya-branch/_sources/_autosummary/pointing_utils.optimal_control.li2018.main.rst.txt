@@ -1,0 +1,6 @@
+pointing\_utils.optimal\_control.li2018.main
+============================================
+
+.. currentmodule:: pointing_utils.optimal_control.li2018
+
+.. autofunction:: main

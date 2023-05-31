@@ -1,0 +1,32 @@
+pointing\_utils.optimal\_control.phillis1985family.Phillis1985Family
+====================================================================
+
+.. currentmodule:: pointing_utils.optimal_control.phillis1985family
+
+.. autoclass:: Phillis1985Family
+   :members:
+   :show-inheritance:
+   :inherited-members:
+   :special-members: __call__, __add__, __mul__
+
+   
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+      :nosignatures:
+   
+      ~Phillis1985Family.LinRicatti
+      ~Phillis1985Family.check_KL
+      ~Phillis1985Family.check_stability
+      ~Phillis1985Family.counted_decorator
+      ~Phillis1985Family.plot_trajectories
+      ~Phillis1985Family.reset
+      ~Phillis1985Family.simulate
+      ~Phillis1985Family.step
+   
+   
+
+   
+   
+   

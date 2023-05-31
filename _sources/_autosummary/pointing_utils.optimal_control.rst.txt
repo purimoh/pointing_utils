@@ -1,0 +1,34 @@
+pointing\_utils.optimal\_control
+================================
+
+.. automodule:: pointing_utils.optimal_control
+
+   
+   
+   
+
+   
+   
+   
+
+   
+   
+   
+
+   
+   
+   
+
+
+
+.. autosummary::
+   :toctree:
+   :template: custom-module-template.rst
+   :recursive:
+
+   pointing_utils.optimal_control.SOFCstepper
+   pointing_utils.optimal_control.li2018
+   pointing_utils.optimal_control.lqg_ih
+   pointing_utils.optimal_control.phillis1985family
+   pointing_utils.optimal_control.qian2013
+

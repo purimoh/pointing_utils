@@ -1,0 +1,6 @@
+pointing\_utils.optimal\_control.phillis1985family.KLNotValidatedError
+======================================================================
+
+.. currentmodule:: pointing_utils.optimal_control.phillis1985family
+
+.. autoexception:: KLNotValidatedError
