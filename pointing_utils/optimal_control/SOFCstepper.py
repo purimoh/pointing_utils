@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 import numpy
 
-### This is Pouriya
+### This is Pouriya and his friend
 class UnstableClosedLoopSystemError(Exception):
     """UnstableClosedLoopSystemError
 
