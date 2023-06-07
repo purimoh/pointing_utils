@@ -221,7 +221,6 @@ class Li2018(Phillis1985Family):
 
 def main():
     # All the initializations of various parameters and matrices
-
     I = 0.25
     b = 0.2
     ta = 0.03

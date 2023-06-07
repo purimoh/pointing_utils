@@ -69,13 +69,13 @@ class LQG_IH(SOFCStepper):
             dxi = self.rng.normal(loc=0, scale=numpy.sqrt(dt), size=(D.shape[1], 1))
 
             dx = (A @ x + B @ u) * dt + G @ domega
-            dy = C @ x * dt + D @ dxi
-            dxhat = (A @ xhat + B @ u) * dt + K @ (dy - C @ xhat * dt)
+            dy = H @ x * dt + D @ dxi
+            dxhat = (A @ xhat + B @ u) * dt + K @ (dy - H @ xhat * dt)
 
         else:
             dx = (A @ x + B @ u) * dt
-            dy = C @ x * dt
-            dxhat = (A @ xhat + B @ u) * dt + K @ (dy - C @ xhat * dt)
+            dy = H @ x * dt
+            dxhat = (A @ xhat + B @ u) * dt + K @ (dy - H @ xhat * dt)
 
         cost = x.T @ Q @ x + u.T @ R @ u
 
