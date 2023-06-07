@@ -168,8 +168,7 @@ class Phillis1985Family(SOFCStepper):
             if average_delta > 0.01:
                 raise KLNotValidatedError()
             if not self.check_stability(K, L):
-                #raise UnstableClosedLoopSystemError()
-                raise KLDidNotConvergeError()
+                raise SOFCStepper.UnstableClosedLoopSystemError()
             return K, L
         elif mode == "scorer":
             if not self.check_stability(K, L):

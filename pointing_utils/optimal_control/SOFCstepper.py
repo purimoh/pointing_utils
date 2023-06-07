@@ -1,5 +1,9 @@
 from abc import ABC, abstractmethod
-import phillis1985family
+from pointing_utils.optimal_control.phillis1985family import (
+    Phillis1985Family,
+    KLNotValidatedError,
+    KLDidNotConvergeError,
+)
 import numpy
 import matplotlib.pyplot as plt
 import functools

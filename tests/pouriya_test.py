@@ -1,10 +1,5 @@
 import numpy
-import matplotlib.pyplot as plt
-import functools
-from scipy.optimize import Bounds
-import scipy.optimize as opti
 from pointing_utils.optimal_control.SOFCstepper import SOFCStepper
-from pointing_utils.optimal_control import phillis1985family
 from pointing_utils.optimal_control import lqg_ih
 
 
