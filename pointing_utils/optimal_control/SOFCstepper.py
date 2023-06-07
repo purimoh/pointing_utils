@@ -209,7 +209,7 @@ def simulate_one_trajectory_with_built_matrices(
     ntrials=ntrials,
     init_value=None,
 ):
-    return phillis1985family.plot_trajectories(
+    return Phillis1985Family.plot_trajectories(
         timestep,
         TF,
         A,
